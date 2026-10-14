@@ -40,7 +40,7 @@ public final class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.VH
 
         TextView expr = new TextView(ctx);
         expr.setId(View.generateViewId());
-        expr.setTextSize(14);
+        expr.setTextSize(15);
         expr.setTypeface(android.graphics.Typeface.MONOSPACE);
         expr.setTextColor(Ui.attrColor(ctx, R.attr.cTextSecondary));
         expr.setGravity(Gravity.END);
@@ -48,8 +48,8 @@ public final class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.VH
 
         TextView result = new TextView(ctx);
         result.setId(View.generateViewId());
-        result.setTextSize(26);
-        result.setTypeface(result.getTypeface(), android.graphics.Typeface.BOLD);
+        result.setTextSize(28);
+        result.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
         result.setTextColor(Ui.attrColor(ctx, R.attr.cTextPrimary));
         result.setGravity(Gravity.END);
         row.addView(result);

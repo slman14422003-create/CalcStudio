@@ -11,7 +11,7 @@ import androidx.core.os.LocaleListCompat;
 import android.widget.ScrollView;
 import androidx.appcompat.app.AlertDialog;
 import android.widget.LinearLayout;
-import android.widget.Switch;
+import androidx.appcompat.widget.SwitchCompat;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,7 +34,7 @@ public final class SettingsActivity extends AppCompatActivity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         int pad = Ui.dp(this, 14);
-        bar.setPadding(Ui.dp(this, 16), pad, Ui.dp(this, 16), Ui.dp(this, 10));
+        bar.setPadding(Ui.dp(this, 8), Ui.dp(this, 6), Ui.dp(this, 8), 0);
 
         ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
         back.setImageResource(R.drawable.ic_back);
@@ -43,17 +43,8 @@ public final class SettingsActivity extends AppCompatActivity {
         back.setOnClickListener(v -> finish());
         bar.addView(back);
 
-        TextView title = new TextView(this);
-        title.setText(R.string.settings_title);
-        title.setTextSize(22);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        title.setTextColor(Ui.attrColor(this, R.attr.cTextPrimary));
-        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        tLp.setMarginStart(Ui.dp(this, 14));
-        title.setLayoutParams(tLp);
-        bar.addView(title);
-
         root.addView(bar);
+        root.addView(Ui.largeTitle(this, R.string.settings_title));
 
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -95,12 +86,11 @@ public final class SettingsActivity extends AppCompatActivity {
     private LinearLayout group(LinearLayout parent, int titleRes) {
         TextView t = new TextView(this);
         t.setText(titleRes);
-        t.setTextSize(12);
+        t.setTextSize(13);
         t.setAllCaps(true);
-        t.setLetterSpacing(0.08f);
-        t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        t.setLetterSpacing(0.02f);
         t.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
-        t.setPadding(Ui.dp(this, 8), Ui.dp(this, 16), 0, Ui.dp(this, 8));
+        t.setPadding(Ui.dp(this, 16), Ui.dp(this, 20), 0, Ui.dp(this, 6));
         parent.addView(t);
         LinearLayout g = Ui.card(this);
         parent.addView(g, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -142,25 +132,27 @@ public final class SettingsActivity extends AppCompatActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(Ui.dp(this, 60));
+        row.setMinimumHeight(Ui.dp(this, 52));
         row.setPadding(Ui.dp(this, 16), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 10));
 
         TextView label = new TextView(this);
         label.setText(labelRes);
-        label.setTextSize(16);
+        label.setTextSize(17);
         label.setTextColor(Ui.attrColor(this, R.attr.cTextPrimary));
         label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(label);
 
         TextView value = new TextView(this);
-        value.setTextSize(16);
-        value.setTextColor(Ui.attrColor(this, R.attr.cAccentText));
+        value.setTextSize(17);
+        value.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
+        
         value.setText(options[Math.max(0, Math.min(options.length - 1, getter.get()))]);
         row.addView(value);
         TextView chev = new TextView(this);
         chev.setText(getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? "‹" : "›");
         chev.setTextSize(22);
         chev.setTextColor(Ui.attrColor(this, R.attr.cTextHint));
+        chev.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         chev.setPadding(Ui.dp(this, 8), 0, 0, 0);
         row.addView(chev);
         row.setBackgroundResource(R.drawable.bg_row_ripple);
@@ -176,24 +168,28 @@ public final class SettingsActivity extends AppCompatActivity {
         return row;
     }
 
-    private interface OnToggle { void onChange(Switch sw, boolean checked); }
+    private interface OnToggle { void onChange(SwitchCompat sw, boolean checked); }
 
     private LinearLayout settingRow(int labelRes, boolean initial, OnToggle onToggle) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(Ui.dp(this, 60));
+        row.setMinimumHeight(Ui.dp(this, 52));
         row.setPadding(Ui.dp(this, 16), Ui.dp(this, 10), Ui.dp(this, 16), Ui.dp(this, 10));
 
         TextView label = new TextView(this);
         label.setText(labelRes);
-        label.setTextSize(16);
+        label.setTextSize(17);
         label.setTextColor(Ui.attrColor(this, R.attr.cTextPrimary));
         LinearLayout.LayoutParams lLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         label.setLayoutParams(lLp);
         row.addView(label);
 
-        Switch sw = new Switch(this);
+        SwitchCompat sw = new SwitchCompat(this);
+        sw.setTrackDrawable(getDrawable(R.drawable.switch_track));
+        sw.setThumbDrawable(getDrawable(R.drawable.switch_thumb));
+        sw.setShowText(false);
+        sw.setSwitchMinWidth(Ui.dp(this, 51));
         sw.setChecked(initial);
         sw.setOnCheckedChangeListener((btn, checked) -> onToggle.onChange(sw, checked));
         row.addView(sw);

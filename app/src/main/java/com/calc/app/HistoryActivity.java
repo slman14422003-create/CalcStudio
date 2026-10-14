@@ -37,7 +37,7 @@ public final class HistoryActivity extends AppCompatActivity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         int pad = Ui.dp(this, 14);
-        bar.setPadding(Ui.dp(this, 16), pad, Ui.dp(this, 16), Ui.dp(this, 10));
+        bar.setPadding(Ui.dp(this, 8), Ui.dp(this, 6), Ui.dp(this, 8), 0);
 
         ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
         back.setImageResource(R.drawable.ic_back);
@@ -45,23 +45,15 @@ public final class HistoryActivity extends AppCompatActivity {
         back.setOnClickListener(v -> finish());
         bar.addView(back);
 
-        TextView title = new TextView(this);
-        title.setText(R.string.history_title);
-        title.setTextSize(22);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        title.setTextColor(Ui.attrColor(this, R.attr.cTextPrimary));
-        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        tLp.setMarginStart(Ui.dp(this, 14));
-        title.setLayoutParams(tLp);
-        bar.addView(title);
+        View spacer = new View(this);
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
+        bar.addView(spacer);
 
         TextView clear = new TextView(this);
         clear.setText(R.string.history_clear);
-        clear.setTextSize(13);
-        clear.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        clear.setTextSize(17);
         clear.setTextColor(Ui.attrColor(this, R.attr.cAccentText));
-        clear.setPadding(Ui.dp(this, 14), Ui.dp(this, 9), Ui.dp(this, 14), Ui.dp(this, 9));
-        clear.setBackground(Ui.round(Ui.attrColor(this, R.attr.cAccentSoft), Ui.dp(this, 12), 0, 0));
+        clear.setPadding(Ui.dp(this, 12), Ui.dp(this, 9), Ui.dp(this, 12), Ui.dp(this, 9));
         clear.setOnClickListener(v -> {
             store.clearHistory();
             reload();
@@ -69,11 +61,12 @@ public final class HistoryActivity extends AppCompatActivity {
         bar.addView(clear);
 
         root.addView(bar);
+        root.addView(Ui.largeTitle(this, R.string.history_title));
 
         empty = new TextView(this);
         empty.setText(R.string.history_empty);
         empty.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
-        empty.setTextSize(15);
+        empty.setTextSize(17);
         empty.setGravity(Gravity.CENTER);
         empty.setPadding(0, Ui.dp(this, 60), 0, 0);
         root.addView(empty);

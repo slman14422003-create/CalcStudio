@@ -181,8 +181,8 @@ public final class MainActivity extends AppCompatActivity {
 
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
-        title.setTextSize(18);
-        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setTextSize(17);
+        title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         title.setTextColor(c(R.attr.cTextPrimary));
         title.setGravity(Gravity.CENTER);
         title.setSingleLine(true);
@@ -197,9 +197,9 @@ public final class MainActivity extends AppCompatActivity {
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
-        tabs.setPadding(dp(3), dp(3), dp(3), dp(3));
-        tabs.setBackground(Ui.round(c(R.attr.cField), dp(14), 0, 0));
-        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42));
+        tabs.setPadding(dp(2), dp(2), dp(2), dp(2));
+        tabs.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
+        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
         tabsLp.topMargin = dp(8);
         tabs.setLayoutParams(tabsLp);
 
@@ -260,14 +260,17 @@ public final class MainActivity extends AppCompatActivity {
 
     private void setPillState(Button b, boolean active) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(11));
+        bg.setCornerRadius(dp(8));
         if (active) {
-            bg.setColor(c(R.attr.cSurface));
-            bg.setStroke(dp(1), c(R.attr.cStrokeSoft));
-            b.setTextColor(c(R.attr.cAccentText));
+            bg.setColor(getColor(R.color.seg_selected));
+            b.setTextColor(c(R.attr.cTextPrimary));
+            b.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+            b.setElevation(dp(1));
         } else {
             bg.setColor(Color.TRANSPARENT);
-            b.setTextColor(c(R.attr.cTextSecondary));
+            b.setTextColor(c(R.attr.cTextPrimary));
+            b.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+            b.setElevation(0);
         }
         b.setBackground(bg);
     }
@@ -278,8 +281,8 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundResource(R.drawable.bg_display);
-        box.setPadding(dp(18), dp(10), dp(18), dp(14));
-        box.setLayoutParams(Ui.matchWrap(this, 8, 6, 12));
+        box.setPadding(dp(22), dp(6), dp(22), dp(10));
+        box.setLayoutParams(Ui.matchWrap(this, 4, 4, 0));
 
         LinearLayout indicators = new LinearLayout(this);
         indicators.setOrientation(LinearLayout.HORIZONTAL);
@@ -305,7 +308,8 @@ public final class MainActivity extends AppCompatActivity {
         exprScroll.setHorizontalScrollBarEnabled(false);
         exprScroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tvExpr = new TextView(this);
-        tvExpr.setTextSize(18);
+        tvExpr.setTextSize(20);
+        tvExpr.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
         tvExpr.setMinHeight(dp(26));
         tvExpr.setTextColor(c(R.attr.cTextSecondary));
         tvExpr.setGravity(Gravity.END);
@@ -315,13 +319,13 @@ public final class MainActivity extends AppCompatActivity {
         box.addView(exprScroll);
 
         tvResult = new TextView(this);
-        tvResult.setTextSize(46);
+        tvResult.setTextSize(64);
         tvResult.setTextColor(c(R.attr.cTextPrimary));
-        tvResult.setTypeface(tvResult.getTypeface(), android.graphics.Typeface.BOLD);
+        tvResult.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
         tvResult.setGravity(Gravity.END);
         tvResult.setText("0");
         tvResult.setSingleLine(true);
-        tvResult.setAutoSizeTextTypeUniformWithConfiguration(20, 46, 1, TypedValue.COMPLEX_UNIT_SP);
+        tvResult.setAutoSizeTextTypeUniformWithConfiguration(24, 64, 1, TypedValue.COMPLEX_UNIT_SP);
         tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tvResult.setOnLongClickListener(v -> {
             copyToClipboard(tvResult.getText().toString());
@@ -718,7 +722,12 @@ public final class MainActivity extends AppCompatActivity {
 
         LinearLayout baseRow = new LinearLayout(this);
         baseRow.setOrientation(LinearLayout.HORIZONTAL);
-        baseRow.setPadding(0, dp(4), 0, dp(8));
+        baseRow.setPadding(dp(2), dp(2), dp(2), dp(2));
+        baseRow.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
+        LinearLayout.LayoutParams baseLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38));
+        baseLp.bottomMargin = dp(10);
+        baseLp.topMargin = dp(4);
+        baseRow.setLayoutParams(baseLp);
         baseDec = basePill(getString(R.string.base_dec), ProgrammerEngine.DEC);
         baseHex = basePill(getString(R.string.base_hex), ProgrammerEngine.HEX);
         baseOct = basePill(getString(R.string.base_oct), ProgrammerEngine.OCT);
@@ -770,8 +779,7 @@ public final class MainActivity extends AppCompatActivity {
         b.setMinHeight(0);
         b.setPadding(0, 0, 0, 0);
         b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(40), 1f);
-        lp.setMargins(dp(3), 0, dp(3), 0);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
         b.setLayoutParams(lp);
         b.setOnClickListener(v -> switchBase(base));
         return b;
@@ -779,7 +787,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private TextView progLine(String label) {
         TextView t = new TextView(this);
-        t.setTextSize(14);
+        t.setTextSize(15);
         t.setTypeface(android.graphics.Typeface.MONOSPACE);
         t.setTextColor(c(R.attr.cTextPrimary));
         t.setGravity(Gravity.END);
@@ -832,10 +840,11 @@ public final class MainActivity extends AppCompatActivity {
 
     private void setBasePillState(Button b, boolean active) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(12));
-        bg.setColor(active ? c(R.attr.cAccent) : c(R.attr.cField));
+        bg.setCornerRadius(dp(8));
+        bg.setColor(active ? getColor(R.color.seg_selected) : Color.TRANSPARENT);
         b.setBackground(bg);
-        b.setTextColor(active ? Color.WHITE : c(R.attr.cTextPrimary));
+        b.setTextColor(c(R.attr.cTextPrimary));
+        b.setElevation(active ? dp(1) : 0);
     }
 
     private long currentProgValue() {
@@ -962,7 +971,9 @@ public final class MainActivity extends AppCompatActivity {
         spCategory = new Spinner(this);
         String[] catLabels = new String[Converter.CATEGORIES.length];
         for (int i = 0; i < catLabels.length; i++) catLabels[i] = categoryLabel(Converter.CATEGORIES[i]);
-        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, catLabels);
+        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, R.layout.item_spinner, catLabels);
+        catAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
+        styleSpinner(spCategory);
         spCategory.setAdapter(catAdapter);
         LinearLayout catCard = Ui.card(this);
         catCard.setPadding(dp(8), dp(2), dp(8), dp(2));
@@ -999,7 +1010,7 @@ public final class MainActivity extends AppCompatActivity {
         arrow.setTextSize(20);
         arrow.setGravity(Gravity.CENTER);
         arrow.setTextColor(c(R.attr.cAccentText));
-        arrow.setBackground(Ui.round(c(R.attr.cField), dp(14), 0, 0));
+        arrow.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(44), dp(36));
         alp.gravity = Gravity.CENTER_HORIZONTAL;
         alp.topMargin = dp(8);
@@ -1007,12 +1018,12 @@ public final class MainActivity extends AppCompatActivity {
         col.addView(arrow, alp);
 
         tvConvResult = new TextView(this);
-        tvConvResult.setTextSize(30);
-        tvConvResult.setTypeface(tvConvResult.getTypeface(), android.graphics.Typeface.BOLD);
+        tvConvResult.setTextSize(34);
+        tvConvResult.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
         tvConvResult.setTextColor(c(R.attr.cAccentText));
         tvConvResult.setPadding(dp(8), dp(6), dp(8), dp(6));
         tvConvResult.setSingleLine(true);
-        tvConvResult.setAutoSizeTextTypeUniformWithConfiguration(14, 30, 1, TypedValue.COMPLEX_UNIT_SP);
+        tvConvResult.setAutoSizeTextTypeUniformWithConfiguration(14, 34, 1, TypedValue.COMPLEX_UNIT_SP);
         tvConvResult.setOnLongClickListener(v -> {
             copyToClipboard(tvConvResult.getText().toString());
             return true;
@@ -1055,6 +1066,12 @@ public final class MainActivity extends AppCompatActivity {
         return scroll;
     }
 
+    private void styleSpinner(Spinner sp) {
+        sp.setBackground(null);
+        sp.setPopupBackgroundDrawable(Ui.round(c(R.attr.cSurface), dp(14), c(R.attr.cStrokeSoft), dp(1)));
+        sp.setPadding(0, 0, 0, 0);
+    }
+
     private String categoryLabel(String key) {
         switch (key) {
             case Converter.LENGTH: return getString(R.string.conv_length);
@@ -1071,9 +1088,13 @@ public final class MainActivity extends AppCompatActivity {
     private void setupUnitSpinners(String category) {
         Map<String, Double> units = Converter.units(category);
         String[] names = units.keySet().toArray(new String[0]);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.item_spinner, names);
+        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
         spFrom.setAdapter(adapter);
-        ArrayAdapter<String> adapter2 = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
+        ArrayAdapter<String> adapter2 = new ArrayAdapter<>(this, R.layout.item_spinner, names);
+        adapter2.setDropDownViewResource(R.layout.item_spinner_dropdown);
+        styleSpinner(spFrom);
+        styleSpinner(spTo);
         spTo.setAdapter(adapter2);
         if (names.length > 1) spTo.setSelection(1);
         doConvert();

@@ -61,6 +61,17 @@ public final class Ui {
         return g;
     }
 
+    public static TextView largeTitle(Context c, int res) {
+        TextView t = new TextView(c);
+        t.setText(res);
+        t.setTextSize(34);
+        t.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        t.setLetterSpacing(-0.01f);
+        t.setTextColor(attrColor(c, R.attr.cTextPrimary));
+        t.setPadding(dp(c, 20), dp(c, 0), dp(c, 20), dp(c, 6));
+        return t;
+    }
+
     public static LinearLayout card(Context c) {
         LinearLayout l = new LinearLayout(c);
         l.setOrientation(LinearLayout.VERTICAL);
