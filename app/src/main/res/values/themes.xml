@@ -67,19 +67,31 @@
     <style name="KeyDigit" parent="KeyBase">
         <item name="android:background">@drawable/key_digit_bg</item>
         <item name="android:textColor">?attr/cTextPrimary</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">24sp</item>
     </style>
 
     <style name="KeyFunction" parent="KeyBase">
         <item name="android:background">@drawable/key_function_bg</item>
         <item name="android:textColor">?attr/cTextPrimary</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="KeyOperator" parent="KeyBase">
         <item name="android:background">@drawable/key_operator_bg</item>
+        <item name="android:textColor">@color/key_op_soft_text</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <style name="KeyEquals" parent="KeyBase">
+        <item name="android:background">@drawable/key_equals_bg</item>
         <item name="android:textColor">@color/key_operator_text</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">26sp</item>
+    </style>
+
+    <style name="KeyDanger" parent="KeyBase">
+        <item name="android:background">@drawable/key_danger_bg</item>
+        <item name="android:textColor">@color/key_danger_text</item>
+        <item name="android:textSize">20sp</item>
     </style>
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">

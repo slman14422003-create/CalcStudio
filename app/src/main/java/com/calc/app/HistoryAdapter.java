@@ -31,20 +31,25 @@ public final class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.VH
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.VERTICAL);
-        int pad = Ui.dp(ctx, 14);
-        row.setPadding(pad, pad, pad, pad);
-        row.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.setBackgroundResource(R.drawable.bg_card);
+        row.setForeground(ctx.getDrawable(R.drawable.bg_row_ripple));
+        row.setPadding(Ui.dp(ctx, 16), Ui.dp(ctx, 12), Ui.dp(ctx, 16), Ui.dp(ctx, 12));
+        RecyclerView.LayoutParams rlp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rlp.setMargins(0, Ui.dp(ctx, 4), 0, Ui.dp(ctx, 4));
+        row.setLayoutParams(rlp);
 
         TextView expr = new TextView(ctx);
         expr.setId(View.generateViewId());
         expr.setTextSize(14);
+        expr.setTypeface(android.graphics.Typeface.MONOSPACE);
         expr.setTextColor(Ui.attrColor(ctx, R.attr.cTextSecondary));
         expr.setGravity(Gravity.END);
         row.addView(expr);
 
         TextView result = new TextView(ctx);
         result.setId(View.generateViewId());
-        result.setTextSize(24);
+        result.setTextSize(26);
+        result.setTypeface(result.getTypeface(), android.graphics.Typeface.BOLD);
         result.setTextColor(Ui.attrColor(ctx, R.attr.cTextPrimary));
         result.setGravity(Gravity.END);
         row.addView(result);

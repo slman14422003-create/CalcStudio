@@ -36,27 +36,40 @@ public final class HistoryActivity extends AppCompatActivity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         int pad = Ui.dp(this, 14);
-        bar.setPadding(pad, pad, pad, pad);
+        bar.setPadding(Ui.dp(this, 16), pad, Ui.dp(this, 16), Ui.dp(this, 10));
 
-        Button back = new Button(this);
+        Button back = new Button(this, null, 0, R.style.IconButton);
         back.setText("←");
+        back.setAllCaps(false);
+        back.setGravity(Gravity.CENTER);
+        back.setIncludeFontPadding(false);
+        back.setTextSize(20);
+        back.setPadding(0, 0, 0, 0);
         back.setMinWidth(0);
+        back.setMinHeight(0);
+        back.setMinimumWidth(0);
+        back.setMinimumHeight(0);
+        back.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 40)));
         back.setOnClickListener(v -> finish());
         bar.addView(back);
 
         TextView title = new TextView(this);
         title.setText(R.string.history_title);
-        title.setTextSize(18);
+        title.setTextSize(22);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
         title.setTextColor(Ui.attrColor(this, R.attr.cTextPrimary));
         LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        tLp.setMarginStart(Ui.dp(this, 10));
+        tLp.setMarginStart(Ui.dp(this, 14));
         title.setLayoutParams(tLp);
         bar.addView(title);
 
-        Button clear = new Button(this);
+        TextView clear = new TextView(this);
         clear.setText(R.string.history_clear);
-        clear.setAllCaps(false);
         clear.setTextSize(13);
+        clear.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        clear.setTextColor(Ui.attrColor(this, R.attr.cAccentText));
+        clear.setPadding(Ui.dp(this, 14), Ui.dp(this, 9), Ui.dp(this, 14), Ui.dp(this, 9));
+        clear.setBackground(Ui.round(Ui.attrColor(this, R.attr.cAccentSoft), Ui.dp(this, 12), 0, 0));
         clear.setOnClickListener(v -> {
             store.clearHistory();
             reload();
@@ -68,13 +81,15 @@ public final class HistoryActivity extends AppCompatActivity {
         empty = new TextView(this);
         empty.setText(R.string.history_empty);
         empty.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
+        empty.setTextSize(15);
         empty.setGravity(Gravity.CENTER);
         empty.setPadding(0, Ui.dp(this, 60), 0, 0);
         root.addView(empty);
 
         rv = new RecyclerView(this);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        rv.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        rv.setClipToPadding(false);
+        rv.setPadding(Ui.dp(this, 14), Ui.dp(this, 4), Ui.dp(this, 14), Ui.dp(this, 20));
         rv.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(rv);
 

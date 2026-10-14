@@ -49,4 +49,9 @@
     <string name="fmt_fixed">ثابت</string>
     <string name="fmt_sci">علمي</string>
     <string name="fmt_eng">هندسي</string>
+    <string name="conv_from">من</string>
+    <string name="conv_to">إلى</string>
+    <string name="group_general">عام</string>
+    <string name="group_format">تنسيق الأرقام</string>
+    <string name="group_precision">الدقة</string>
 </resources>

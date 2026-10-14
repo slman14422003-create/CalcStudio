@@ -49,4 +49,9 @@
     <string name="fmt_fixed">Fixed</string>
     <string name="fmt_sci">Scientific</string>
     <string name="fmt_eng">Engineering</string>
+    <string name="conv_from">From</string>
+    <string name="conv_to">To</string>
+    <string name="group_general">General</string>
+    <string name="group_format">Number format</string>
+    <string name="group_precision">Precision</string>
 </resources>

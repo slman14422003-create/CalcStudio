@@ -41,7 +41,7 @@ public final class Ui {
         b.setText(text);
         b.setAllCaps(false);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, weight);
-        int m = dp(c, 4);
+        int m = dp(c, 3);
         lp.setMargins(m, m, m, m);
         b.setLayoutParams(lp);
         b.setPadding(0, 0, 0, 0);
@@ -51,6 +51,28 @@ public final class Ui {
         b.setMinimumWidth(0);
         b.setMinimumHeight(0);
         return b;
+    }
+
+    public static android.graphics.drawable.GradientDrawable round(int color, int radius, int stroke, int strokeW) {
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(radius);
+        if (strokeW > 0) g.setStroke(strokeW, stroke);
+        return g;
+    }
+
+    public static LinearLayout card(Context c) {
+        LinearLayout l = new LinearLayout(c);
+        l.setOrientation(LinearLayout.VERTICAL);
+        l.setBackgroundResource(R.drawable.bg_card);
+        return l;
+    }
+
+    public static LinearLayout.LayoutParams matchWrap(Context c, int top, int bottom, int side) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(c, side), dp(c, top), dp(c, side), dp(c, bottom));
+        return lp;
     }
 
     public static TextView small(Context c, String text) {

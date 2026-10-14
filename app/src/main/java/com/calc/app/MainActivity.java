@@ -163,7 +163,7 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(8), dp(8), dp(8), dp(4));
+        bar.setPadding(dp(12), dp(8), dp(12), dp(4));
         bar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         Button btnHistory = iconButton("🕘");
@@ -175,15 +175,11 @@ public final class MainActivity extends AppCompatActivity {
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
-        tabs.setBackgroundColor(c(R.attr.cField));
         tabs.setPadding(dp(3), dp(3), dp(3), dp(3));
-        GradientDrawable tabsBg = new GradientDrawable();
-        tabsBg.setColor(c(R.attr.cField));
-        tabsBg.setCornerRadius(dp(100));
-        tabs.setBackground(tabsBg);
-        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(0, dp(38), 1f);
-        tabsLp.setMarginStart(dp(8));
-        tabsLp.setMarginEnd(dp(8));
+        tabs.setBackground(Ui.round(c(R.attr.cField), dp(14), 0, 0));
+        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(0, dp(40), 1f);
+        tabsLp.setMarginStart(dp(10));
+        tabsLp.setMarginEnd(dp(10));
         tabs.setLayoutParams(tabsLp);
 
         tabSci = tabPill(getString(R.string.tab_sci));
@@ -211,13 +207,15 @@ public final class MainActivity extends AppCompatActivity {
         Button b = new Button(this, null, 0, R.style.IconButton);
         b.setText(emoji);
         b.setAllCaps(false);
+        b.setGravity(Gravity.CENTER);
+        b.setIncludeFontPadding(false);
         b.setTextSize(18);
         b.setPadding(0, 0, 0, 0);
         b.setMinWidth(0);
         b.setMinHeight(0);
         b.setMinimumWidth(0);
         b.setMinimumHeight(0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(44), dp(44));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
         b.setLayoutParams(lp);
         return b;
     }
@@ -226,12 +224,17 @@ public final class MainActivity extends AppCompatActivity {
         Button b = new Button(this);
         b.setText(text);
         b.setAllCaps(false);
-        b.setTextSize(12);
+        b.setGravity(Gravity.CENTER);
+        b.setSingleLine(true);
+        b.setMaxLines(1);
+        b.setIncludeFontPadding(false);
+        b.setAutoSizeTextTypeUniformWithConfiguration(9, 13, 1, TypedValue.COMPLEX_UNIT_SP);
+        b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         b.setMinWidth(0);
         b.setMinHeight(0);
         b.setMinimumWidth(0);
         b.setMinimumHeight(0);
-        b.setPadding(0, 0, 0, 0);
+        b.setPadding(dp(2), 0, dp(2), 0);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
         b.setLayoutParams(lp);
         return b;
@@ -246,9 +249,10 @@ public final class MainActivity extends AppCompatActivity {
 
     private void setPillState(Button b, boolean active) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(100));
+        bg.setCornerRadius(dp(11));
         if (active) {
             bg.setColor(c(R.attr.cSurface));
+            bg.setStroke(dp(1), c(R.attr.cStrokeSoft));
             b.setTextColor(c(R.attr.cAccentText));
         } else {
             bg.setColor(Color.TRANSPARENT);
@@ -262,9 +266,9 @@ public final class MainActivity extends AppCompatActivity {
     private View buildDisplay() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundColor(c(R.attr.cGroupBg));
+        box.setBackgroundResource(R.drawable.bg_display);
         box.setPadding(dp(18), dp(10), dp(18), dp(14));
-        box.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        box.setLayoutParams(Ui.matchWrap(this, 8, 6, 12));
 
         LinearLayout indicators = new LinearLayout(this);
         indicators.setOrientation(LinearLayout.HORIZONTAL);
@@ -290,7 +294,8 @@ public final class MainActivity extends AppCompatActivity {
         exprScroll.setHorizontalScrollBarEnabled(false);
         exprScroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tvExpr = new TextView(this);
-        tvExpr.setTextSize(20);
+        tvExpr.setTextSize(18);
+        tvExpr.setMinHeight(dp(26));
         tvExpr.setTextColor(c(R.attr.cTextSecondary));
         tvExpr.setGravity(Gravity.END);
         tvExpr.setText("");
@@ -299,13 +304,13 @@ public final class MainActivity extends AppCompatActivity {
         box.addView(exprScroll);
 
         tvResult = new TextView(this);
-        tvResult.setTextSize(42);
+        tvResult.setTextSize(46);
         tvResult.setTextColor(c(R.attr.cTextPrimary));
         tvResult.setTypeface(tvResult.getTypeface(), android.graphics.Typeface.BOLD);
         tvResult.setGravity(Gravity.END);
         tvResult.setText("0");
         tvResult.setSingleLine(true);
-        tvResult.setAutoSizeTextTypeUniformWithConfiguration(16, 42, 1, TypedValue.COMPLEX_UNIT_SP);
+        tvResult.setAutoSizeTextTypeUniformWithConfiguration(20, 46, 1, TypedValue.COMPLEX_UNIT_SP);
         tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tvResult.setOnLongClickListener(v -> {
             copyToClipboard(tvResult.getText().toString());
@@ -319,7 +324,9 @@ public final class MainActivity extends AppCompatActivity {
     private TextView indicatorText(String s) {
         TextView t = new TextView(this);
         t.setText(s);
-        t.setTextSize(11);
+        t.setTextSize(10);
+        t.setLetterSpacing(0.08f);
+        t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         t.setTextColor(c(R.attr.cAccentText));
         t.setPadding(dp(6), 0, dp(6), 0);
         return t;
@@ -336,7 +343,7 @@ public final class MainActivity extends AppCompatActivity {
     private View buildSciKeypad() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(6), dp(6), dp(6), dp(6));
+        col.setPadding(dp(10), dp(4), dp(10), dp(8));
         col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         addSciRow(col, new String[]{"SHIFT", "HYP", "DEG", "(", ")"});
@@ -350,8 +357,7 @@ public final class MainActivity extends AppCompatActivity {
         addSciRow(col, new String[]{"0", ".", "Ans", "EXP", "+"});
 
         LinearLayout eqRow = Ui.row(this);
-        Button eq = Ui.key(this, "=", R.style.KeyOperator, 1f);
-        eq.setTextSize(22);
+        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f);
         eq.setOnClickListener(v -> onEquals());
         eqRow.addView(eq);
         col.addView(eqRow);
@@ -362,7 +368,7 @@ public final class MainActivity extends AppCompatActivity {
     private void addSciRow(LinearLayout parent, String[] keys) {
         LinearLayout row = Ui.row(this);
         for (String k : keys) {
-            int style = isDigitKey(k) ? R.style.KeyDigit : (isOperatorKey(k) ? R.style.KeyOperator : R.style.KeyFunction);
+            int style = keyStyle(k);
             Button b = Ui.key(this, k, style, 1f);
             if (style == R.style.KeyFunction) b.setTextSize(14);
             if (k.equals("DEG")) degKeyRef = b;
@@ -378,8 +384,12 @@ public final class MainActivity extends AppCompatActivity {
         return k.length() == 1 && Character.isDigit(k.charAt(0)) || k.equals(".");
     }
 
-    private boolean isOperatorKey(String k) {
-        return k.equals("÷") || k.equals("×") || k.equals("−") || k.equals("+") || k.equals("AC") || k.equals("=");
+    private int keyStyle(String k) {
+        if (k.equals("AC")) return R.style.KeyDanger;
+        if (k.equals("=")) return R.style.KeyEquals;
+        if (isDigitKey(k)) return R.style.KeyDigit;
+        if (k.equals("÷") || k.equals("×") || k.equals("−") || k.equals("+")) return R.style.KeyOperator;
+        return R.style.KeyFunction;
     }
 
     private void handleSciKey(String key, Button source) {
@@ -458,7 +468,7 @@ public final class MainActivity extends AppCompatActivity {
     private View buildAdvKeypad() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(6), dp(6), dp(6), dp(6));
+        col.setPadding(dp(10), dp(4), dp(10), dp(8));
         col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         col.setVisibility(View.GONE);
 
@@ -475,7 +485,7 @@ public final class MainActivity extends AppCompatActivity {
         for (String[] r : rows) {
             LinearLayout row = Ui.row(this);
             for (String k : r) {
-                int style = (k.equals("AC") || k.equals("DEL")) ? R.style.KeyOperator : R.style.KeyFunction;
+                int style = k.equals("AC") ? R.style.KeyDanger : R.style.KeyFunction;
                 Button b = Ui.key(this, k, style, 1f);
                 b.setTextSize(k.length() > 5 ? 11 : 13);
                 b.setOnClickListener(v -> handleAdvKey(k, b));
@@ -485,8 +495,7 @@ public final class MainActivity extends AppCompatActivity {
         }
 
         LinearLayout eqRow = Ui.row(this);
-        Button eq = Ui.key(this, "=", R.style.KeyOperator, 1f);
-        eq.setTextSize(22);
+        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f);
         eq.setOnClickListener(v -> onEquals());
         eqRow.addView(eq);
         col.addView(eqRow);
@@ -631,13 +640,13 @@ public final class MainActivity extends AppCompatActivity {
     private View buildProgPanel() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(6), dp(6), dp(6), dp(6));
+        col.setPadding(dp(10), dp(4), dp(10), dp(8));
         col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         col.setVisibility(View.GONE);
 
         LinearLayout baseRow = new LinearLayout(this);
         baseRow.setOrientation(LinearLayout.HORIZONTAL);
-        baseRow.setPadding(0, 0, 0, dp(6));
+        baseRow.setPadding(0, dp(4), 0, dp(8));
         baseDec = basePill(getString(R.string.base_dec), ProgrammerEngine.DEC);
         baseHex = basePill(getString(R.string.base_hex), ProgrammerEngine.HEX);
         baseOct = basePill(getString(R.string.base_oct), ProgrammerEngine.OCT);
@@ -648,9 +657,11 @@ public final class MainActivity extends AppCompatActivity {
         baseRow.addView(baseBin);
         col.addView(baseRow);
 
-        LinearLayout convLines = new LinearLayout(this);
-        convLines.setOrientation(LinearLayout.VERTICAL);
-        convLines.setPadding(dp(4), dp(2), dp(4), dp(8));
+        LinearLayout convLines = Ui.card(this);
+        convLines.setPadding(dp(16), dp(10), dp(16), dp(10));
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        clp.bottomMargin = dp(8);
+        convLines.setLayoutParams(clp);
         tvProgDec = progLine("DEC");
         tvProgHex = progLine("HEX");
         tvProgOct = progLine("OCT");
@@ -686,7 +697,8 @@ public final class MainActivity extends AppCompatActivity {
         b.setMinWidth(0);
         b.setMinHeight(0);
         b.setPadding(0, 0, 0, 0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(36), 1f);
+        b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(40), 1f);
         lp.setMargins(dp(3), 0, dp(3), 0);
         b.setLayoutParams(lp);
         b.setOnClickListener(v -> switchBase(base));
@@ -695,10 +707,12 @@ public final class MainActivity extends AppCompatActivity {
 
     private TextView progLine(String label) {
         TextView t = new TextView(this);
-        t.setTextSize(13);
-        t.setTextColor(c(R.attr.cTextSecondary));
+        t.setTextSize(14);
+        t.setTypeface(android.graphics.Typeface.MONOSPACE);
+        t.setTextColor(c(R.attr.cTextPrimary));
         t.setGravity(Gravity.END);
         t.setSingleLine(true);
+        t.setPadding(0, dp(2), 0, dp(2));
         return t;
     }
 
@@ -706,8 +720,9 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout row = Ui.row(this);
         for (String k : keys) {
             int style;
-            if (k.equals("AC") || k.equals("DEL")) style = R.style.KeyOperator;
-            else if (k.equals("=") || k.equals("÷") || k.equals("×") || k.equals("−") || k.equals("+")) style = R.style.KeyOperator;
+            if (k.equals("AC")) style = R.style.KeyDanger;
+            else if (k.equals("=")) style = R.style.KeyEquals;
+            else if (k.equals("÷") || k.equals("×") || k.equals("−") || k.equals("+")) style = R.style.KeyOperator;
             else if (k.matches("[0-9A-F]")) style = R.style.KeyDigit;
             else style = R.style.KeyFunction;
             Button b = Ui.key(this, k, style, 1f);
@@ -745,7 +760,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private void setBasePillState(Button b, boolean active) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(100));
+        bg.setCornerRadius(dp(12));
         bg.setColor(active ? c(R.attr.cAccent) : c(R.attr.cField));
         b.setBackground(bg);
         b.setTextColor(active ? Color.WHITE : c(R.attr.cTextPrimary));
@@ -870,43 +885,79 @@ public final class MainActivity extends AppCompatActivity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(18), dp(12), dp(18), dp(18));
+        col.setPadding(dp(14), dp(8), dp(14), dp(18));
 
         spCategory = new Spinner(this);
         String[] catLabels = new String[Converter.CATEGORIES.length];
         for (int i = 0; i < catLabels.length; i++) catLabels[i] = categoryLabel(Converter.CATEGORIES[i]);
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, catLabels);
         spCategory.setAdapter(catAdapter);
-        col.addView(spCategory, matchWrap());
-
-        addSpace(col, 16);
+        LinearLayout catCard = Ui.card(this);
+        catCard.setPadding(dp(8), dp(2), dp(8), dp(2));
+        catCard.addView(spCategory, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+        col.addView(catCard, Ui.matchWrap(this, 6, 10, 0));
 
         etConvInput = new EditText(this);
         etConvInput.setHint("0");
         etConvInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-        etConvInput.setTextSize(20);
-        col.addView(etConvInput, matchWrap());
+        etConvInput.setTextSize(26);
+        etConvInput.setSingleLine(true);
+        etConvInput.setBackground(null);
+        etConvInput.setPadding(dp(8), dp(6), dp(8), dp(6));
+        etConvInput.setTextColor(c(R.attr.cTextPrimary));
+        etConvInput.setHintTextColor(c(R.attr.cTextHint));
 
         spFrom = new Spinner(this);
-        col.addView(spFrom, matchWrap());
+        spTo = new Spinner(this);
 
-        addSpace(col, 10);
+        LinearLayout inCard = Ui.card(this);
+        inCard.setPadding(dp(14), dp(10), dp(10), dp(10));
+        TextView fromLabel = Ui.small(this, getString(R.string.conv_from));
+        inCard.addView(fromLabel);
+        LinearLayout inRow = new LinearLayout(this);
+        inRow.setOrientation(LinearLayout.HORIZONTAL);
+        inRow.setGravity(Gravity.CENTER_VERTICAL);
+        inRow.addView(etConvInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        inRow.addView(spFrom, new LinearLayout.LayoutParams(dp(140), dp(48)));
+        inCard.addView(inRow);
+        col.addView(inCard, Ui.matchWrap(this, 0, 0, 0));
+
         TextView arrow = new TextView(this);
         arrow.setText("↓");
         arrow.setTextSize(20);
         arrow.setGravity(Gravity.CENTER);
         arrow.setTextColor(c(R.attr.cAccentText));
-        col.addView(arrow, matchWrap());
-        addSpace(col, 10);
+        arrow.setBackground(Ui.round(c(R.attr.cField), dp(14), 0, 0));
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(44), dp(36));
+        alp.gravity = Gravity.CENTER_HORIZONTAL;
+        alp.topMargin = dp(8);
+        alp.bottomMargin = dp(8);
+        col.addView(arrow, alp);
 
         tvConvResult = new TextView(this);
-        tvConvResult.setTextSize(28);
+        tvConvResult.setTextSize(30);
         tvConvResult.setTypeface(tvConvResult.getTypeface(), android.graphics.Typeface.BOLD);
         tvConvResult.setTextColor(c(R.attr.cAccentText));
-        col.addView(tvConvResult, matchWrap());
+        tvConvResult.setPadding(dp(8), dp(6), dp(8), dp(6));
+        tvConvResult.setSingleLine(true);
+        tvConvResult.setAutoSizeTextTypeUniformWithConfiguration(14, 30, 1, TypedValue.COMPLEX_UNIT_SP);
+        tvConvResult.setOnLongClickListener(v -> {
+            copyToClipboard(tvConvResult.getText().toString());
+            return true;
+        });
 
-        spTo = new Spinner(this);
-        col.addView(spTo, matchWrap());
+        LinearLayout outCard = new LinearLayout(this);
+        outCard.setOrientation(LinearLayout.VERTICAL);
+        outCard.setBackgroundResource(R.drawable.bg_result_card);
+        outCard.setPadding(dp(14), dp(10), dp(10), dp(10));
+        outCard.addView(Ui.small(this, getString(R.string.conv_to)));
+        LinearLayout outRow = new LinearLayout(this);
+        outRow.setOrientation(LinearLayout.HORIZONTAL);
+        outRow.setGravity(Gravity.CENTER_VERTICAL);
+        outRow.addView(tvConvResult, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        outRow.addView(spTo, new LinearLayout.LayoutParams(dp(140), dp(48)));
+        outCard.addView(outRow);
+        col.addView(outCard, Ui.matchWrap(this, 0, 0, 0));
 
         scroll.addView(col);
 
@@ -970,7 +1021,7 @@ public final class MainActivity extends AppCompatActivity {
             return;
         }
         double out = Converter.convert(category, from, to, input);
-        tvConvResult.setText(Fmt.result(out, store.getThousands()) + " " + to);
+        tvConvResult.setText(Fmt.result(out, store.getThousands()));
     }
 
     private LinearLayout.LayoutParams matchWrap() {
