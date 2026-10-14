@@ -5,6 +5,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 import android.widget.ScrollView;
 import androidx.appcompat.app.AlertDialog;
 import android.widget.LinearLayout;
@@ -33,17 +36,9 @@ public final class SettingsActivity extends AppCompatActivity {
         int pad = Ui.dp(this, 14);
         bar.setPadding(Ui.dp(this, 16), pad, Ui.dp(this, 16), Ui.dp(this, 10));
 
-        Button back = new Button(this, null, 0, R.style.IconButton);
-        back.setText("←");
-        back.setAllCaps(false);
-        back.setGravity(Gravity.CENTER);
-        back.setIncludeFontPadding(false);
-        back.setTextSize(20);
-        back.setPadding(0, 0, 0, 0);
-        back.setMinWidth(0);
-        back.setMinHeight(0);
-        back.setMinimumWidth(0);
-        back.setMinimumHeight(0);
+        ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
+        back.setImageResource(R.drawable.ic_back);
+        back.setContentDescription(getString(R.string.settings_title));
         back.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 40)));
         back.setOnClickListener(v -> finish());
         bar.addView(back);
@@ -66,6 +61,10 @@ public final class SettingsActivity extends AppCompatActivity {
         ScrollView scroll = new ScrollView(this);
         scroll.addView(list);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout g0 = group(list, R.string.group_language);
+        final String[] langs = {getString(R.string.lang_system), getString(R.string.lang_arabic), getString(R.string.lang_english)};
+        addRow(g0, choiceRow(R.string.settings_language, langs, () -> currentLang(), i -> setLang(i)));
 
         LinearLayout g1 = group(list, R.string.group_general);
         addRow(g1, settingRow(R.string.settings_haptic, store.getHaptic(), (sw, checked) -> store.setHaptic(checked)));
@@ -119,6 +118,18 @@ public final class SettingsActivity extends AppCompatActivity {
         group.addView(row);
     }
 
+    private int currentLang() {
+        LocaleListCompat l = AppCompatDelegate.getApplicationLocales();
+        if (l.isEmpty()) return 0;
+        String tag = l.toLanguageTags();
+        return tag.startsWith("ar") ? 1 : 2;
+    }
+
+    private void setLang(int i) {
+        String tag = i == 1 ? "ar" : (i == 2 ? "en" : "");
+        AppCompatDelegate.setApplicationLocales(tag.isEmpty() ? LocaleListCompat.getEmptyLocaleList() : LocaleListCompat.forLanguageTags(tag));
+    }
+
     private static int indexOf(int[] arr, int v) {
         for (int i = 0; i < arr.length; i++) if (arr[i] == v) return i;
         return 0;
@@ -147,7 +158,7 @@ public final class SettingsActivity extends AppCompatActivity {
         value.setText(options[Math.max(0, Math.min(options.length - 1, getter.get()))]);
         row.addView(value);
         TextView chev = new TextView(this);
-        chev.setText("›");
+        chev.setText(getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? "‹" : "›");
         chev.setTextSize(22);
         chev.setTextColor(Ui.attrColor(this, R.attr.cTextHint));
         chev.setPadding(Ui.dp(this, 8), 0, 0, 0);

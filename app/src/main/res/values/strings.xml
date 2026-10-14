@@ -54,4 +54,9 @@
     <string name="group_general">General</string>
     <string name="group_format">Number format</string>
     <string name="group_precision">Precision</string>
+    <string name="group_language">Language</string>
+    <string name="settings_language">App language</string>
+    <string name="lang_system">System default</string>
+    <string name="lang_arabic">العربية</string>
+    <string name="lang_english">English</string>
 </resources>

@@ -54,4 +54,9 @@
     <string name="group_general">عام</string>
     <string name="group_format">تنسيق الأرقام</string>
     <string name="group_precision">الدقة</string>
+    <string name="group_language">اللغة</string>
+    <string name="settings_language">لغة التطبيق</string>
+    <string name="lang_system">لغة النظام</string>
+    <string name="lang_arabic">العربية</string>
+    <string name="lang_english">English</string>
 </resources>

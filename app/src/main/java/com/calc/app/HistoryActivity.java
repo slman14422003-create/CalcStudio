@@ -6,6 +6,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -38,17 +39,8 @@ public final class HistoryActivity extends AppCompatActivity {
         int pad = Ui.dp(this, 14);
         bar.setPadding(Ui.dp(this, 16), pad, Ui.dp(this, 16), Ui.dp(this, 10));
 
-        Button back = new Button(this, null, 0, R.style.IconButton);
-        back.setText("←");
-        back.setAllCaps(false);
-        back.setGravity(Gravity.CENTER);
-        back.setIncludeFontPadding(false);
-        back.setTextSize(20);
-        back.setPadding(0, 0, 0, 0);
-        back.setMinWidth(0);
-        back.setMinHeight(0);
-        back.setMinimumWidth(0);
-        back.setMinimumHeight(0);
+        ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
+        back.setImageResource(R.drawable.ic_back);
         back.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 40)));
         back.setOnClickListener(v -> finish());
         bar.addView(back);

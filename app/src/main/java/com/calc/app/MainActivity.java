@@ -37,10 +37,11 @@ public final class MainActivity extends AppCompatActivity {
 
     public static final String EXTRA_RESTORE = "restore_expr";
 
-    private static final int TAB_SCI = 0;
-    private static final int TAB_PROG = 1;
-    private static final int TAB_CONV = 2;
-    private static final int TAB_ADV = 3;
+    private static final int TAB_BASIC = 0;
+    private static final int TAB_SCI = 1;
+    private static final int TAB_PROG = 2;
+    private static final int TAB_CONV = 3;
+    private static final int TAB_ADV = 4;
 
     private Store store;
     private int currentTab = TAB_SCI;
@@ -62,8 +63,9 @@ public final class MainActivity extends AppCompatActivity {
     private Button btnHyp;
 
     private FrameLayout panelContainer;
-    private View sciKeypad, progPanel, convPanel, advKeypad;
-    private Button tabSci, tabProg, tabConv, tabAdv;
+    private View basicKeypad, sciKeypad, progPanel, convPanel, advKeypad;
+    private Button tabBasic, tabSci, tabProg, tabConv, tabAdv;
+    private Button shiftKeyRef, hypKeyRef;
     private BigDecimal lastBig = null;
     private BigDecimal pendingBig = null;
     private double pendingAns = 0;
@@ -91,7 +93,7 @@ public final class MainActivity extends AppCompatActivity {
         store = new Store(this);
         Fmt.apply(store);
         angleMode = store.getAngleMode();
-        currentTab = store.getLastTab();
+        currentTab = Math.max(0, Math.min(TAB_ADV, store.getLastTab()));
         progBase = store.getLastBase();
 
         historyLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -136,6 +138,7 @@ public final class MainActivity extends AppCompatActivity {
         root.setBackgroundColor(c(R.attr.cBg));
         root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         root.setFitsSystemWindows(true);
+        root.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
         root.addView(buildTopBar());
         root.addView(buildDisplay());
@@ -144,10 +147,12 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams pcLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         panelContainer.setLayoutParams(pcLp);
 
+        basicKeypad = buildBasicKeypad();
         sciKeypad = buildSciKeypad();
         progPanel = buildProgPanel();
         convPanel = buildConvPanel();
         advKeypad = buildAdvKeypad();
+        panelContainer.addView(basicKeypad);
         panelContainer.addView(sciKeypad);
         panelContainer.addView(progPanel);
         panelContainer.addView(convPanel);
@@ -160,63 +165,68 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- top bar ----------
 
     private View buildTopBar() {
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setPadding(dp(12), dp(6), dp(12), dp(2));
+        wrap.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(12), dp(8), dp(12), dp(4));
-        bar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        Button btnHistory = iconButton("🕘");
-        btnHistory.setOnClickListener(v -> {
-            Intent i = new Intent(this, HistoryActivity.class);
-            historyLauncher.launch(i);
-        });
+        ImageButton btnHistory = iconButton(R.drawable.ic_history);
+        btnHistory.setContentDescription(getString(R.string.action_history));
+        btnHistory.setOnClickListener(v -> historyLauncher.launch(new Intent(this, HistoryActivity.class)));
         bar.addView(btnHistory);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.app_name);
+        title.setTextSize(18);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setTextColor(c(R.attr.cTextPrimary));
+        title.setGravity(Gravity.CENTER);
+        title.setSingleLine(true);
+        title.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        bar.addView(title);
+
+        ImageButton btnSettings = iconButton(R.drawable.ic_settings);
+        btnSettings.setContentDescription(getString(R.string.action_settings));
+        btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        bar.addView(btnSettings);
+        wrap.addView(bar);
 
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setPadding(dp(3), dp(3), dp(3), dp(3));
         tabs.setBackground(Ui.round(c(R.attr.cField), dp(14), 0, 0));
-        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(0, dp(40), 1f);
-        tabsLp.setMarginStart(dp(10));
-        tabsLp.setMarginEnd(dp(10));
+        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42));
+        tabsLp.topMargin = dp(8);
         tabs.setLayoutParams(tabsLp);
 
+        tabBasic = tabPill(getString(R.string.tab_basic));
         tabSci = tabPill(getString(R.string.tab_sci));
         tabProg = tabPill(getString(R.string.tab_prog));
         tabConv = tabPill(getString(R.string.tab_conv));
         tabAdv = tabPill(getString(R.string.tab_adv));
+        tabBasic.setOnClickListener(v -> switchTab(TAB_BASIC));
         tabSci.setOnClickListener(v -> switchTab(TAB_SCI));
         tabProg.setOnClickListener(v -> switchTab(TAB_PROG));
         tabConv.setOnClickListener(v -> switchTab(TAB_CONV));
         tabAdv.setOnClickListener(v -> switchTab(TAB_ADV));
+        tabs.addView(tabBasic);
         tabs.addView(tabSci);
         tabs.addView(tabProg);
         tabs.addView(tabConv);
         tabs.addView(tabAdv);
-        bar.addView(tabs);
+        wrap.addView(tabs);
 
-        Button btnSettings = iconButton("⚙");
-        btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        bar.addView(btnSettings);
-
-        return bar;
+        return wrap;
     }
 
-    private Button iconButton(String emoji) {
-        Button b = new Button(this, null, 0, R.style.IconButton);
-        b.setText(emoji);
-        b.setAllCaps(false);
-        b.setGravity(Gravity.CENTER);
-        b.setIncludeFontPadding(false);
-        b.setTextSize(18);
-        b.setPadding(0, 0, 0, 0);
-        b.setMinWidth(0);
-        b.setMinHeight(0);
-        b.setMinimumWidth(0);
-        b.setMinimumHeight(0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
-        b.setLayoutParams(lp);
+    private ImageButton iconButton(int drawableRes) {
+        ImageButton b = new ImageButton(this, null, 0, R.style.IconButton);
+        b.setImageResource(drawableRes);
+        b.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
         return b;
     }
 
@@ -241,6 +251,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void refreshTabPills() {
+        setPillState(tabBasic, currentTab == TAB_BASIC);
         setPillState(tabSci, currentTab == TAB_SCI);
         setPillState(tabProg, currentTab == TAB_PROG);
         setPillState(tabConv, currentTab == TAB_CONV);
@@ -338,6 +349,62 @@ public final class MainActivity extends AppCompatActivity {
         Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show();
     }
 
+    // ---------- basic keypad ----------
+
+    private View buildBasicKeypad() {
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(dp(10), dp(6), dp(10), dp(10));
+        col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        col.setVisibility(View.GONE);
+
+        String[][] rows = {
+                {"AC", "±", "%", "÷"},
+                {"7", "8", "9", "×"},
+                {"4", "5", "6", "−"},
+                {"1", "2", "3", "+"},
+                {"0", ".", "DEL", "="},
+        };
+        for (String[] r : rows) {
+            LinearLayout row = Ui.row(this);
+            for (String k : r) {
+                int style = keyStyle(k);
+                if (k.equals("±") || k.equals("%") || k.equals("DEL")) style = R.style.KeyFunction;
+                Button b = Ui.key(this, k, style, 1f);
+                if (style == R.style.KeyFunction) b.setTextSize(20);
+                b.setOnClickListener(v -> handleBasicKey(k, b));
+                row.addView(b);
+            }
+            col.addView(row);
+        }
+        return col;
+    }
+
+    private void handleBasicKey(String key, Button source) {
+        vibrate(source);
+        switch (key) {
+            case "AC": clearAll(); return;
+            case "DEL": backspace(); return;
+            case "=": onEquals(); return;
+            case "±": negate(); return;
+            default: insert(key);
+        }
+    }
+
+    private void negate() {
+        String e = lastWasResult ? lastAnswerPlain() : currentExpr;
+        lastWasResult = false;
+        if (e.isEmpty()) {
+            currentExpr = "−";
+        } else if (e.startsWith("−(") && e.endsWith(")")) {
+            currentExpr = e.substring(2, e.length() - 1);
+        } else {
+            currentExpr = "−(" + e + ")";
+        }
+        tvExpr.setText(currentExpr);
+        livePreview();
+    }
+
     // ---------- scientific keypad ----------
 
     private View buildSciKeypad() {
@@ -372,6 +439,8 @@ public final class MainActivity extends AppCompatActivity {
             Button b = Ui.key(this, k, style, 1f);
             if (style == R.style.KeyFunction) b.setTextSize(14);
             if (k.equals("DEG")) degKeyRef = b;
+            if (k.equals("SHIFT")) shiftKeyRef = b;
+            if (k.equals("HYP")) hypKeyRef = b;
             b.setOnClickListener(v -> handleSciKey(k, b));
             row.addView(b);
         }
@@ -454,6 +523,8 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void refreshIndicators() {
+        if (shiftKeyRef != null) shiftKeyRef.setTextColor(shiftOn ? c(R.attr.cAccentText) : c(R.attr.cTextPrimary));
+        if (hypKeyRef != null) hypKeyRef.setTextColor(hypOn ? c(R.attr.cAccentText) : c(R.attr.cTextPrimary));
         btnDot(tvShiftDot, shiftOn);
         btnDot(tvHypDot, hypOn);
         btnDot(tvMemDot, store.getMemory() != 0);
@@ -626,6 +697,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private void switchTab(int tab) {
         currentTab = tab;
+        basicKeypad.setVisibility(tab == TAB_BASIC ? View.VISIBLE : View.GONE);
         sciKeypad.setVisibility(tab == TAB_SCI ? View.VISIBLE : View.GONE);
         progPanel.setVisibility(tab == TAB_PROG ? View.VISIBLE : View.GONE);
         convPanel.setVisibility(tab == TAB_CONV ? View.VISIBLE : View.GONE);
