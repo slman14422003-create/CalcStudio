@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SEMO Calculator</string>
+    <string name="tab_basic">Basic</string>
+    <string name="tab_sci">Scientific</string>
+    <string name="tab_prog">Programmer</string>
+    <string name="tab_conv">Convert</string>
+    <string name="deg">DEG</string>
+    <string name="rad">RAD</string>
+    <string name="grad">GRAD</string>
+    <string name="shift">SHIFT</string>
+    <string name="hyp">HYP</string>
+    <string name="history_title">History</string>
+    <string name="history_empty">No history yet</string>
+    <string name="history_clear">Clear history</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_haptic">Vibrate on key press</string>
+    <string name="settings_dark">Follow system dark mode</string>
+    <string name="settings_thousands">Thousands separator</string>
+    <string name="settings_angle_default">Default angle unit</string>
+    <string name="memory_saved">Saved to memory</string>
+    <string name="memory_cleared">Memory cleared</string>
+    <string name="error_math">Math error</string>
+    <string name="error_syntax">Syntax error</string>
+    <string name="error_div_zero">Division by zero</string>
+    <string name="copied">Copied</string>
+    <string name="base_dec">DEC</string>
+    <string name="base_hex">HEX</string>
+    <string name="base_oct">OCT</string>
+    <string name="base_bin">BIN</string>
+    <string name="conv_length">Length</string>
+    <string name="conv_weight">Weight</string>
+    <string name="conv_temp">Temperature</string>
+    <string name="conv_area">Area</string>
+    <string name="conv_speed">Speed</string>
+    <string name="conv_data">Data</string>
+    <string name="conv_time">Time</string>
+    <string name="action_history">History</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_share">Share result</string>
+</resources>
