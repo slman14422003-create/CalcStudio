@@ -1,0 +1,5 @@
+-keep class com.calc.app.** { *; }
+-dontwarn org.apache.commons.math3.**
+-dontwarn ch.obermuhlner.**
+-keep class ch.obermuhlner.math.big.** { *; }
+-keep class org.apache.commons.math3.stat.** { *; }
