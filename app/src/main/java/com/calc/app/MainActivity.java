@@ -4,14 +4,13 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
 import android.os.Bundle;
-import android.util.TypedValue;
-import android.view.HapticFeedbackConstants;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -19,6 +18,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -43,6 +43,10 @@ public final class MainActivity extends AppCompatActivity {
     private static final int TAB_CONV = 3;
     private static final int TAB_ADV = 4;
 
+    private static final int[] PROG_BASES = {
+            ProgrammerEngine.DEC, ProgrammerEngine.HEX, ProgrammerEngine.OCT, ProgrammerEngine.BIN
+    };
+
     private Store store;
     private int currentTab = TAB_SCI;
     private int angleMode = Expr.DEG;
@@ -59,13 +63,15 @@ public final class MainActivity extends AppCompatActivity {
     private TextView tvShiftDot;
     private TextView tvHypDot;
     private TextView tvMemDot;
-    private Button btnShift;
-    private Button btnHyp;
+    private HorizontalScrollView exprScroll;
+    private View displayBox;
+
+    private HorizontalScrollView tabScroll;
+    private final TextView[] tabChips = new TextView[5];
 
     private FrameLayout panelContainer;
     private View basicKeypad, sciKeypad, progPanel, convPanel, advKeypad;
-    private Button tabBasic, tabSci, tabProg, tabConv, tabAdv;
-    private Button shiftKeyRef, hypKeyRef;
+    private Button shiftKeyRef, hypKeyRef, degKeyRef;
     private BigDecimal lastBig = null;
     private BigDecimal pendingBig = null;
     private double pendingAns = 0;
@@ -74,14 +80,16 @@ public final class MainActivity extends AppCompatActivity {
     private String progEntry = "0";
     private long progAcc = 0;
     private String progPendingOp = null;
-    private TextView tvProgMain;
-    private TextView tvProgDec, tvProgHex, tvProgOct, tvProgBin;
+    private final View[] progBaseRows = new View[4];
+    private final TextView[] progBaseLabels = new TextView[4];
+    private final TextView[] progBaseValues = new TextView[4];
     private Button[] hexDigitButtons;
-    private Button baseDec, baseHex, baseOct, baseBin;
 
     private EditText etConvInput;
     private TextView tvConvResult;
-    private Spinner spCategory, spFrom, spTo;
+    private Spinner spFrom, spTo;
+    private TextView[] convChips;
+    private int convCategory = 0;
 
     private ActivityResultLauncher<Intent> historyLauncher;
 
@@ -101,7 +109,7 @@ public final class MainActivity extends AppCompatActivity {
                 String restore = result.getData().getStringExtra(EXTRA_RESTORE);
                 if (restore != null) {
                     currentExpr = restore;
-                    tvExpr.setText(currentExpr);
+                    showExpr(currentExpr);
                     livePreview();
                 }
             }
@@ -141,11 +149,12 @@ public final class MainActivity extends AppCompatActivity {
         root.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
         root.addView(buildTopBar());
-        root.addView(buildDisplay());
+
+        displayBox = buildDisplay();
+        root.addView(displayBox);
 
         panelContainer = new FrameLayout(this);
-        LinearLayout.LayoutParams pcLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        panelContainer.setLayoutParams(pcLp);
+        panelContainer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         basicKeypad = buildBasicKeypad();
         sciKeypad = buildSciKeypad();
@@ -162,12 +171,18 @@ public final class MainActivity extends AppCompatActivity {
         setContentView(root);
     }
 
+    private FrameLayout.LayoutParams panelLp() {
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp.setMargins(dp(12), dp(4), dp(12), dp(12));
+        return lp;
+    }
+
     // ---------- top bar ----------
 
     private View buildTopBar() {
         LinearLayout wrap = new LinearLayout(this);
         wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.setPadding(dp(12), dp(6), dp(12), dp(2));
+        wrap.setPadding(dp(16), dp(8), dp(16), dp(4));
         wrap.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         LinearLayout bar = new LinearLayout(this);
@@ -181,8 +196,8 @@ public final class MainActivity extends AppCompatActivity {
 
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
-        title.setTextSize(17);
-        title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        title.setTextSize(18);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setTextColor(c(R.attr.cTextPrimary));
         title.setGravity(Gravity.CENTER);
         title.setSingleLine(true);
@@ -195,30 +210,34 @@ public final class MainActivity extends AppCompatActivity {
         bar.addView(btnSettings);
         wrap.addView(bar);
 
+        tabScroll = new HorizontalScrollView(this);
+        tabScroll.setHorizontalScrollBarEnabled(false);
+        tabScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        tabScroll.setFillViewport(true);
+        LinearLayout.LayoutParams tsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
+        tsLp.topMargin = dp(10);
+        tabScroll.setLayoutParams(tsLp);
+
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
-        tabs.setPadding(dp(2), dp(2), dp(2), dp(2));
-        tabs.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
-        LinearLayout.LayoutParams tabsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
-        tabsLp.topMargin = dp(8);
-        tabs.setLayoutParams(tabsLp);
+        tabs.setGravity(Gravity.CENTER);
 
-        tabBasic = tabPill(getString(R.string.tab_basic));
-        tabSci = tabPill(getString(R.string.tab_sci));
-        tabProg = tabPill(getString(R.string.tab_prog));
-        tabConv = tabPill(getString(R.string.tab_conv));
-        tabAdv = tabPill(getString(R.string.tab_adv));
-        tabBasic.setOnClickListener(v -> switchTab(TAB_BASIC));
-        tabSci.setOnClickListener(v -> switchTab(TAB_SCI));
-        tabProg.setOnClickListener(v -> switchTab(TAB_PROG));
-        tabConv.setOnClickListener(v -> switchTab(TAB_CONV));
-        tabAdv.setOnClickListener(v -> switchTab(TAB_ADV));
-        tabs.addView(tabBasic);
-        tabs.addView(tabSci);
-        tabs.addView(tabProg);
-        tabs.addView(tabConv);
-        tabs.addView(tabAdv);
-        wrap.addView(tabs);
+        String[] labels = {
+                getString(R.string.tab_basic), getString(R.string.tab_sci), getString(R.string.tab_prog),
+                getString(R.string.tab_conv), getString(R.string.tab_adv)
+        };
+        int[] ids = {TAB_BASIC, TAB_SCI, TAB_PROG, TAB_CONV, TAB_ADV};
+        for (int i = 0; i < labels.length; i++) {
+            final int tabId = ids[i];
+            TextView chip = Ui.chip(this, labels[i]);
+            chip.setOnClickListener(v -> switchTab(tabId));
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            clp.setMargins(dp(3), 0, dp(3), 0);
+            tabs.addView(chip, clp);
+            tabChips[tabId] = chip;
+        }
+        tabScroll.addView(tabs, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        wrap.addView(tabScroll);
 
         return wrap;
     }
@@ -230,49 +249,15 @@ public final class MainActivity extends AppCompatActivity {
         return b;
     }
 
-    private Button tabPill(String text) {
-        Button b = new Button(this);
-        b.setText(text);
-        b.setAllCaps(false);
-        b.setGravity(Gravity.CENTER);
-        b.setSingleLine(true);
-        b.setMaxLines(1);
-        b.setIncludeFontPadding(false);
-        b.setAutoSizeTextTypeUniformWithConfiguration(9, 13, 1, TypedValue.COMPLEX_UNIT_SP);
-        b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        b.setMinWidth(0);
-        b.setMinHeight(0);
-        b.setMinimumWidth(0);
-        b.setMinimumHeight(0);
-        b.setPadding(dp(2), 0, dp(2), 0);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-        b.setLayoutParams(lp);
-        return b;
-    }
-
     private void refreshTabPills() {
-        setPillState(tabBasic, currentTab == TAB_BASIC);
-        setPillState(tabSci, currentTab == TAB_SCI);
-        setPillState(tabProg, currentTab == TAB_PROG);
-        setPillState(tabConv, currentTab == TAB_CONV);
-        setPillState(tabAdv, currentTab == TAB_ADV);
-    }
-
-    private void setPillState(Button b, boolean active) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(8));
-        if (active) {
-            bg.setColor(getColor(R.color.seg_selected));
-            b.setTextColor(c(R.attr.cTextPrimary));
-            b.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-            b.setElevation(dp(1));
-        } else {
-            bg.setColor(Color.TRANSPARENT);
-            b.setTextColor(c(R.attr.cTextPrimary));
-            b.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
-            b.setElevation(0);
+        for (int i = 0; i < tabChips.length; i++) {
+            Ui.setChipState(tabChips[i], currentTab == i);
         }
-        b.setBackground(bg);
+        final TextView sel = tabChips[currentTab];
+        tabScroll.post(() -> {
+            int target = sel.getLeft() - (tabScroll.getWidth() - sel.getWidth()) / 2;
+            tabScroll.smoothScrollTo(Math.max(0, target), 0);
+        });
     }
 
     // ---------- display ----------
@@ -281,52 +266,56 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundResource(R.drawable.bg_display);
-        box.setPadding(dp(22), dp(6), dp(22), dp(10));
-        box.setLayoutParams(Ui.matchWrap(this, 4, 4, 0));
+        box.setPadding(dp(24), dp(6), dp(24), dp(8));
+        box.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         LinearLayout indicators = new LinearLayout(this);
         indicators.setOrientation(LinearLayout.HORIZONTAL);
-        indicators.setGravity(Gravity.END);
+        indicators.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         indicators.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        tvMemDot = indicatorText("M");
-        tvShiftDot = indicatorText("SHIFT");
-        tvHypDot = indicatorText("HYP");
         tvAngle = indicatorText(getString(R.string.deg));
+        tvAngle.setTextColor(c(R.attr.cAccentText));
         tvAngle.setOnClickListener(v -> cycleAngle());
-        tvMemDot.setAlpha(0.25f);
-        tvShiftDot.setAlpha(0.25f);
-        tvHypDot.setAlpha(0.25f);
+        tvShiftDot = indicatorText(getString(R.string.shift));
+        tvShiftDot.setOnClickListener(v -> { shiftOn = !shiftOn; refreshIndicators(); });
+        tvHypDot = indicatorText(getString(R.string.hyp));
+        tvHypDot.setOnClickListener(v -> { hypOn = !hypOn; refreshIndicators(); });
+        tvMemDot = indicatorText("M");
+        tvMemDot.setClickable(false);
 
-        indicators.addView(tvMemDot);
+        indicators.addView(tvAngle);
         indicators.addView(tvShiftDot);
         indicators.addView(tvHypDot);
-        indicators.addView(tvAngle);
+        indicators.addView(tvMemDot);
         box.addView(indicators);
 
-        HorizontalScrollView exprScroll = new HorizontalScrollView(this);
+        exprScroll = new HorizontalScrollView(this);
         exprScroll.setHorizontalScrollBarEnabled(false);
-        exprScroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        exprScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        exprScroll.setFillViewport(true);
+        LinearLayout.LayoutParams esLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        esLp.topMargin = dp(6);
+        exprScroll.setLayoutParams(esLp);
         tvExpr = new TextView(this);
-        tvExpr.setTextSize(20);
-        tvExpr.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
-        tvExpr.setMinHeight(dp(26));
+        tvExpr.setTextSize(22);
+        tvExpr.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        tvExpr.setMinHeight(dp(30));
         tvExpr.setTextColor(c(R.attr.cTextSecondary));
-        tvExpr.setGravity(Gravity.END);
+        tvExpr.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        tvExpr.setSingleLine(true);
         tvExpr.setText("");
-        tvExpr.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        exprScroll.addView(tvExpr);
+        exprScroll.addView(tvExpr, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         box.addView(exprScroll);
 
         tvResult = new TextView(this);
-        tvResult.setTextSize(64);
         tvResult.setTextColor(c(R.attr.cTextPrimary));
-        tvResult.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
-        tvResult.setGravity(Gravity.END);
+        tvResult.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        tvResult.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         tvResult.setText("0");
-        tvResult.setSingleLine(true);
-        tvResult.setAutoSizeTextTypeUniformWithConfiguration(24, 64, 1, TypedValue.COMPLEX_UNIT_SP);
-        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        tvResult.setMinHeight(dp(48));
+        Ui.autoFit(tvResult, 28, 72);
+        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         tvResult.setOnLongClickListener(v -> {
             copyToClipboard(tvResult.getText().toString());
             return true;
@@ -339,12 +328,23 @@ public final class MainActivity extends AppCompatActivity {
     private TextView indicatorText(String s) {
         TextView t = new TextView(this);
         t.setText(s);
-        t.setTextSize(10);
-        t.setLetterSpacing(0.08f);
-        t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        t.setTextColor(c(R.attr.cAccentText));
-        t.setPadding(dp(6), 0, dp(6), 0);
+        t.setTextSize(11);
+        t.setLetterSpacing(0.06f);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setGravity(Gravity.CENTER);
+        t.setClickable(true);
+        t.setFocusable(true);
+        t.setPadding(dp(10), dp(4), dp(10), dp(4));
+        Ui.setTagState(t, false);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMarginEnd(dp(6));
+        t.setLayoutParams(lp);
         return t;
+    }
+
+    private void showExpr(String s) {
+        tvExpr.setText(s);
+        exprScroll.post(() -> exprScroll.fullScroll(View.FOCUS_RIGHT));
     }
 
     private void copyToClipboard(String s) {
@@ -358,8 +358,9 @@ public final class MainActivity extends AppCompatActivity {
     private View buildBasicKeypad() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(10), dp(6), dp(10), dp(10));
-        col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        col.setBackgroundResource(R.drawable.bg_keypad_panel);
+        col.setPadding(dp(10), dp(12), dp(10), dp(10));
+        col.setLayoutParams(panelLp());
         col.setVisibility(View.GONE);
 
         String[][] rows = {
@@ -374,7 +375,7 @@ public final class MainActivity extends AppCompatActivity {
             for (String k : r) {
                 int style = keyStyle(k);
                 if (k.equals("±") || k.equals("%") || k.equals("DEL")) style = R.style.KeyFunction;
-                Button b = Ui.key(this, k, style, 1f);
+                Button b = Ui.key(this, k, style, 1f, 4);
                 if (style == R.style.KeyFunction) b.setTextSize(20);
                 b.setOnClickListener(v -> handleBasicKey(k, b));
                 row.addView(b);
@@ -405,7 +406,7 @@ public final class MainActivity extends AppCompatActivity {
         } else {
             currentExpr = "−(" + e + ")";
         }
-        tvExpr.setText(currentExpr);
+        showExpr(currentExpr);
         livePreview();
     }
 
@@ -414,21 +415,29 @@ public final class MainActivity extends AppCompatActivity {
     private View buildSciKeypad() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(10), dp(4), dp(10), dp(8));
-        col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        col.setBackgroundResource(R.drawable.bg_keypad_panel);
+        col.setPadding(dp(8), dp(10), dp(8), dp(8));
+        col.setLayoutParams(panelLp());
+        col.setVisibility(View.GONE);
 
-        addSciRow(col, new String[]{"SHIFT", "HYP", "DEG", "(", ")"});
-        addSciRow(col, new String[]{"sin", "cos", "tan", "log", "ln"});
-        addSciRow(col, new String[]{"x²", "√", "xʸ", "ˣ√y", "n!"});
-        addSciRow(col, new String[]{"π", "e", "1/x", "∛", "%"});
-        addSciRow(col, new String[]{"MC", "MR", "M+", "M−", "DEL"});
-        addSciRow(col, new String[]{"7", "8", "9", "AC", "÷"});
-        addSciRow(col, new String[]{"4", "5", "6", "nPr", "×"});
-        addSciRow(col, new String[]{"1", "2", "3", "nCr", "−"});
-        addSciRow(col, new String[]{"0", ".", "Ans", "EXP", "+"});
+        addSciRow(col, new String[]{"SHIFT", "HYP", "DEG", "(", ")"}, 0.8f);
+        addSciRow(col, new String[]{"sin", "cos", "tan", "log", "ln"}, 0.8f);
+        addSciRow(col, new String[]{"x²", "√", "xʸ", "ˣ√y", "n!"}, 0.8f);
+        addSciRow(col, new String[]{"π", "e", "1/x", "∛", "%"}, 0.8f);
+        addSciRow(col, new String[]{"MC", "MR", "M+", "M−", "DEL"}, 0.8f);
 
-        LinearLayout eqRow = Ui.row(this);
-        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f);
+        View gap = new View(this);
+        gap.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(6)));
+        col.addView(gap);
+
+        addSciRow(col, new String[]{"7", "8", "9", "AC", "÷"}, 1f);
+        addSciRow(col, new String[]{"4", "5", "6", "nPr", "×"}, 1f);
+        addSciRow(col, new String[]{"1", "2", "3", "nCr", "−"}, 1f);
+        addSciRow(col, new String[]{"0", ".", "Ans", "EXP", "+"}, 1f);
+
+        LinearLayout eqRow = Ui.row(this, 0.9f);
+        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f, 2);
+        eq.setTextSize(26);
         eq.setOnClickListener(v -> onEquals());
         eqRow.addView(eq);
         col.addView(eqRow);
@@ -436,12 +445,16 @@ public final class MainActivity extends AppCompatActivity {
         return col;
     }
 
-    private void addSciRow(LinearLayout parent, String[] keys) {
-        LinearLayout row = Ui.row(this);
+    private void addSciRow(LinearLayout parent, String[] keys, float rowWeight) {
+        LinearLayout row = Ui.row(this, rowWeight);
         for (String k : keys) {
             int style = keyStyle(k);
-            Button b = Ui.key(this, k, style, 1f);
-            if (style == R.style.KeyFunction) b.setTextSize(14);
+            Button b = Ui.key(this, k, style, 1f, 2);
+            if (style == R.style.KeyFunction) {
+                Ui.autoFit(b, 10, 16);
+            } else if (style == R.style.KeyDigit || style == R.style.KeyOperator) {
+                b.setTextSize(24);
+            }
             if (k.equals("DEG")) degKeyRef = b;
             if (k.equals("SHIFT")) shiftKeyRef = b;
             if (k.equals("HYP")) hypKeyRef = b;
@@ -450,8 +463,6 @@ public final class MainActivity extends AppCompatActivity {
         }
         parent.addView(row);
     }
-
-    private Button degKeyRef;
 
     private boolean isDigitKey(String k) {
         return k.length() == 1 && Character.isDigit(k.charAt(0)) || k.equals(".");
@@ -527,15 +538,27 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void refreshIndicators() {
-        if (shiftKeyRef != null) shiftKeyRef.setTextColor(shiftOn ? c(R.attr.cAccentText) : c(R.attr.cTextPrimary));
-        if (hypKeyRef != null) hypKeyRef.setTextColor(hypOn ? c(R.attr.cAccentText) : c(R.attr.cTextPrimary));
+        styleToggleKey(shiftKeyRef, shiftOn);
+        styleToggleKey(hypKeyRef, hypOn);
         btnDot(tvShiftDot, shiftOn);
         btnDot(tvHypDot, hypOn);
-        btnDot(tvMemDot, store.getMemory() != 0);
+        boolean hasMem = store.getMemory() != 0;
+        btnDot(tvMemDot, hasMem);
+        boolean sci = currentTab == TAB_SCI;
+        tvAngle.setVisibility(currentTab == TAB_BASIC ? View.GONE : View.VISIBLE);
+        tvShiftDot.setVisibility(sci ? View.VISIBLE : View.GONE);
+        tvHypDot.setVisibility(sci ? View.VISIBLE : View.GONE);
+        tvMemDot.setVisibility(sci || hasMem ? View.VISIBLE : View.GONE);
+    }
+
+    private void styleToggleKey(Button b, boolean on) {
+        if (b == null) return;
+        b.setBackgroundResource(on ? R.drawable.key_equals_bg : R.drawable.key_function_bg);
+        b.setTextColor(on ? getColor(R.color.on_accent) : c(R.attr.cTextPrimary));
     }
 
     private void btnDot(TextView t, boolean active) {
-        t.setAlpha(active ? 1f : 0.25f);
+        Ui.setTagState(t, active);
     }
 
     // ---------- advanced keypad ----------
@@ -543,8 +566,9 @@ public final class MainActivity extends AppCompatActivity {
     private View buildAdvKeypad() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(10), dp(4), dp(10), dp(8));
-        col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        col.setBackgroundResource(R.drawable.bg_keypad_panel);
+        col.setPadding(dp(8), dp(10), dp(8), dp(8));
+        col.setLayoutParams(panelLp());
         col.setVisibility(View.GONE);
 
         String[][] rows = {
@@ -561,8 +585,8 @@ public final class MainActivity extends AppCompatActivity {
             LinearLayout row = Ui.row(this);
             for (String k : r) {
                 int style = k.equals("AC") ? R.style.KeyDanger : R.style.KeyFunction;
-                Button b = Ui.key(this, k, style, 1f);
-                b.setTextSize(k.length() > 5 ? 11 : 13);
+                Button b = Ui.key(this, k, style, 1f, 2);
+                if (style == R.style.KeyFunction) Ui.autoFit(b, 9, 15);
                 b.setOnClickListener(v -> handleAdvKey(k, b));
                 row.addView(b);
             }
@@ -570,7 +594,8 @@ public final class MainActivity extends AppCompatActivity {
         }
 
         LinearLayout eqRow = Ui.row(this);
-        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f);
+        Button eq = Ui.key(this, "=", R.style.KeyEquals, 1f, 2);
+        eq.setTextSize(26);
         eq.setOnClickListener(v -> onEquals());
         eqRow.addView(eq);
         col.addView(eqRow);
@@ -601,7 +626,7 @@ public final class MainActivity extends AppCompatActivity {
             lastWasResult = false;
         }
         currentExpr += token;
-        tvExpr.setText(currentExpr);
+        showExpr(currentExpr);
         livePreview();
     }
 
@@ -609,13 +634,13 @@ public final class MainActivity extends AppCompatActivity {
         if (lastWasResult) { clearAll(); return; }
         if (currentExpr.isEmpty()) return;
         currentExpr = currentExpr.substring(0, currentExpr.length() - 1);
-        tvExpr.setText(currentExpr);
+        showExpr(currentExpr);
         livePreview();
     }
 
     private void clearAll() {
         currentExpr = "";
-        tvExpr.setText("");
+        showExpr("");
         tvResult.setText("0");
         lastWasResult = false;
     }
@@ -706,9 +731,41 @@ public final class MainActivity extends AppCompatActivity {
         progPanel.setVisibility(tab == TAB_PROG ? View.VISIBLE : View.GONE);
         convPanel.setVisibility(tab == TAB_CONV ? View.VISIBLE : View.GONE);
         advKeypad.setVisibility(tab == TAB_ADV ? View.VISIBLE : View.GONE);
+        boolean showDisplay = tab != TAB_PROG && tab != TAB_CONV;
+        displayBox.setVisibility(showDisplay ? View.VISIBLE : View.GONE);
+        applyWeights(tab);
+        if (tab != TAB_CONV) hideKeyboard();
         refreshTabPills();
         if (tab == TAB_PROG) updateProgDisplay();
         refreshIndicators();
+    }
+
+    private void applyWeights(int tab) {
+        float displayWeight;
+        float panelWeight;
+        if (tab == TAB_BASIC) {
+            displayWeight = 1.15f;
+            panelWeight = 2.2f;
+        } else if (tab == TAB_SCI || tab == TAB_ADV) {
+            displayWeight = 0.95f;
+            panelWeight = 3.0f;
+        } else {
+            displayWeight = 0f;
+            panelWeight = 1f;
+        }
+        LinearLayout.LayoutParams dlp = (LinearLayout.LayoutParams) displayBox.getLayoutParams();
+        dlp.weight = displayWeight;
+        displayBox.setLayoutParams(dlp);
+        LinearLayout.LayoutParams plp = (LinearLayout.LayoutParams) panelContainer.getLayoutParams();
+        plp.weight = panelWeight;
+        panelContainer.setLayoutParams(plp);
+    }
+
+    private void hideKeyboard() {
+        View f = getCurrentFocus();
+        if (f == null) return;
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(f.getWindowToken(), 0);
     }
 
     // ---------- programmer mode ----------
@@ -716,97 +773,90 @@ public final class MainActivity extends AppCompatActivity {
     private View buildProgPanel() {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(10), dp(4), dp(10), dp(8));
         col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         col.setVisibility(View.GONE);
 
-        LinearLayout baseRow = new LinearLayout(this);
-        baseRow.setOrientation(LinearLayout.HORIZONTAL);
-        baseRow.setPadding(dp(2), dp(2), dp(2), dp(2));
-        baseRow.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
-        LinearLayout.LayoutParams baseLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38));
-        baseLp.bottomMargin = dp(10);
-        baseLp.topMargin = dp(4);
-        baseRow.setLayoutParams(baseLp);
-        baseDec = basePill(getString(R.string.base_dec), ProgrammerEngine.DEC);
-        baseHex = basePill(getString(R.string.base_hex), ProgrammerEngine.HEX);
-        baseOct = basePill(getString(R.string.base_oct), ProgrammerEngine.OCT);
-        baseBin = basePill(getString(R.string.base_bin), ProgrammerEngine.BIN);
-        baseRow.addView(baseDec);
-        baseRow.addView(baseHex);
-        baseRow.addView(baseOct);
-        baseRow.addView(baseBin);
-        col.addView(baseRow);
+        LinearLayout baseCard = Ui.card(this);
+        baseCard.setPadding(dp(8), dp(8), dp(8), dp(8));
+        LinearLayout.LayoutParams bcLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        bcLp.setMargins(dp(12), dp(8), dp(12), dp(10));
+        col.addView(baseCard, bcLp);
 
-        LinearLayout convLines = Ui.card(this);
-        convLines.setPadding(dp(16), dp(10), dp(16), dp(10));
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        clp.bottomMargin = dp(8);
-        convLines.setLayoutParams(clp);
-        tvProgDec = progLine("DEC");
-        tvProgHex = progLine("HEX");
-        tvProgOct = progLine("OCT");
-        tvProgBin = progLine("BIN");
-        convLines.addView(tvProgDec);
-        convLines.addView(tvProgHex);
-        convLines.addView(tvProgOct);
-        convLines.addView(tvProgBin);
-        col.addView(convLines);
+        String[] baseNames = {
+                getString(R.string.base_dec), getString(R.string.base_hex),
+                getString(R.string.base_oct), getString(R.string.base_bin)
+        };
+        for (int i = 0; i < 4; i++) {
+            final int base = PROG_BASES[i];
+            LinearLayout r = new LinearLayout(this);
+            r.setOrientation(LinearLayout.HORIZONTAL);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+            r.setPadding(dp(12), 0, dp(12), 0);
+            r.setClickable(true);
+            r.setFocusable(true);
+            r.setOnClickListener(v -> switchBase(base));
+
+            TextView label = new TextView(this);
+            label.setText(baseNames[i]);
+            label.setTextSize(12);
+            label.setLetterSpacing(0.06f);
+            label.setTypeface(Typeface.DEFAULT_BOLD);
+            r.addView(label, new LinearLayout.LayoutParams(dp(48), ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            TextView value = new TextView(this);
+            value.setTypeface(Typeface.MONOSPACE);
+            value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            value.setText("0");
+            Ui.autoFit(value, 11, 22);
+            r.addView(value, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            baseCard.addView(r, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+            progBaseRows[i] = r;
+            progBaseLabels[i] = label;
+            progBaseValues[i] = value;
+        }
 
         LinearLayout keys = new LinearLayout(this);
         keys.setOrientation(LinearLayout.VERTICAL);
-        keys.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        keys.setBackgroundResource(R.drawable.bg_keypad_panel);
+        keys.setPadding(dp(8), dp(10), dp(8), dp(8));
+        LinearLayout.LayoutParams kLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        kLp.setMargins(dp(12), 0, dp(12), dp(12));
+        col.addView(keys, kLp);
 
         hexDigitButtons = new Button[6];
-        addProgRow(keys, new String[]{"A", "B", "C", "D", "E"}, true);
-        addProgRow(keys, new String[]{"F", "DEL", "AC"}, true);
-        addProgRow(keys, new String[]{"AND", "OR", "XOR", "NOT", "<<"}, false);
-        addProgRow(keys, new String[]{"NAND", "NOR", ">>", "±", "%"}, false);
-        addProgRow(keys, new String[]{"7", "8", "9", "÷", "×"}, false);
-        addProgRow(keys, new String[]{"4", "5", "6", "−", "+"}, false);
-        addProgRow(keys, new String[]{"1", "2", "3", "0", "="}, false);
+        addProgRow(keys, new String[]{"A", "B", "C", "D", "E", "F"}, null, 0.8f);
+        addProgRow(keys, new String[]{"AND", "OR", "XOR", "NOT", "<<"}, null, 0.8f);
+        addProgRow(keys, new String[]{"NAND", "NOR", ">>", "±", "%"}, null, 0.8f);
+        addProgRow(keys, new String[]{"7", "8", "9", "DEL", "AC"}, null, 1f);
+        addProgRow(keys, new String[]{"4", "5", "6", "×", "÷"}, null, 1f);
+        addProgRow(keys, new String[]{"1", "2", "3", "+", "−"}, null, 1f);
+        addProgRow(keys, new String[]{"0", "="}, new float[]{2f, 3f}, 1f);
 
-        col.addView(keys);
         return col;
     }
 
-    private Button basePill(String label, int base) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setAllCaps(false);
-        b.setTextSize(13);
-        b.setMinWidth(0);
-        b.setMinHeight(0);
-        b.setPadding(0, 0, 0, 0);
-        b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-        b.setLayoutParams(lp);
-        b.setOnClickListener(v -> switchBase(base));
-        return b;
-    }
-
-    private TextView progLine(String label) {
-        TextView t = new TextView(this);
-        t.setTextSize(15);
-        t.setTypeface(android.graphics.Typeface.MONOSPACE);
-        t.setTextColor(c(R.attr.cTextPrimary));
-        t.setGravity(Gravity.END);
-        t.setSingleLine(true);
-        t.setPadding(0, dp(2), 0, dp(2));
-        return t;
-    }
-
-    private void addProgRow(LinearLayout parent, String[] keys, boolean hexRow) {
-        LinearLayout row = Ui.row(this);
-        for (String k : keys) {
+    private void addProgRow(LinearLayout parent, String[] keys, float[] weights, float rowWeight) {
+        LinearLayout row = Ui.row(this, rowWeight);
+        for (int i = 0; i < keys.length; i++) {
+            final String k = keys[i];
             int style;
             if (k.equals("AC")) style = R.style.KeyDanger;
             else if (k.equals("=")) style = R.style.KeyEquals;
             else if (k.equals("÷") || k.equals("×") || k.equals("−") || k.equals("+")) style = R.style.KeyOperator;
             else if (k.matches("[0-9A-F]")) style = R.style.KeyDigit;
             else style = R.style.KeyFunction;
-            Button b = Ui.key(this, k, style, 1f);
-            if (style == R.style.KeyFunction) b.setTextSize(13);
+            float w = weights == null ? 1f : weights[i];
+            Button b = Ui.key(this, k, style, w, 2);
+            if (style == R.style.KeyFunction) {
+                Ui.autoFit(b, 9, 15);
+            } else if (style == R.style.KeyDigit) {
+                b.setTextSize(k.matches("[0-9]") ? 24 : 20);
+            } else if (style == R.style.KeyOperator) {
+                b.setTextSize(24);
+            } else if (style == R.style.KeyEquals) {
+                b.setTextSize(26);
+            }
             b.setOnClickListener(v -> handleProgKey(k, b));
             row.addView(b);
             if (k.matches("[A-F]")) {
@@ -826,25 +876,18 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void updateDigitEnablement() {
-        setBasePillState(baseDec, progBase == ProgrammerEngine.DEC);
-        setBasePillState(baseHex, progBase == ProgrammerEngine.HEX);
-        setBasePillState(baseOct, progBase == ProgrammerEngine.OCT);
-        setBasePillState(baseBin, progBase == ProgrammerEngine.BIN);
+        for (int i = 0; i < 4; i++) {
+            boolean active = progBase == PROG_BASES[i];
+            progBaseRows[i].setBackgroundResource(active ? R.drawable.bg_base_row_selected : R.drawable.bg_base_row_idle);
+            progBaseLabels[i].setTextColor(active ? c(R.attr.cAccentText) : c(R.attr.cTextSecondary));
+            progBaseValues[i].setTextColor(c(R.attr.cTextPrimary));
+        }
         for (int i = 0; i < 6; i++) {
             if (hexDigitButtons[i] == null) continue;
             boolean en = progBase == ProgrammerEngine.HEX;
             hexDigitButtons[i].setEnabled(en);
             hexDigitButtons[i].setAlpha(en ? 1f : 0.3f);
         }
-    }
-
-    private void setBasePillState(Button b, boolean active) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(8));
-        bg.setColor(active ? getColor(R.color.seg_selected) : Color.TRANSPARENT);
-        b.setBackground(bg);
-        b.setTextColor(c(R.attr.cTextPrimary));
-        b.setElevation(active ? dp(1) : 0);
     }
 
     private long currentProgValue() {
@@ -950,10 +993,10 @@ public final class MainActivity extends AppCompatActivity {
 
     private void updateProgDisplay() {
         long v = currentProgValue();
-        tvProgDec.setText("DEC  " + ProgrammerEngine.format(v, ProgrammerEngine.DEC));
-        tvProgHex.setText("HEX  " + ProgrammerEngine.grouped(ProgrammerEngine.format(v, ProgrammerEngine.HEX), ProgrammerEngine.HEX));
-        tvProgOct.setText("OCT  " + ProgrammerEngine.format(v, ProgrammerEngine.OCT));
-        tvProgBin.setText("BIN  " + ProgrammerEngine.grouped(ProgrammerEngine.format(v, ProgrammerEngine.BIN), ProgrammerEngine.BIN));
+        progBaseValues[0].setText(ProgrammerEngine.format(v, ProgrammerEngine.DEC));
+        progBaseValues[1].setText(ProgrammerEngine.grouped(ProgrammerEngine.format(v, ProgrammerEngine.HEX), ProgrammerEngine.HEX));
+        progBaseValues[2].setText(ProgrammerEngine.format(v, ProgrammerEngine.OCT));
+        progBaseValues[3].setText(ProgrammerEngine.grouped(ProgrammerEngine.format(v, ProgrammerEngine.BIN), ProgrammerEngine.BIN));
         updateDigitEnablement();
     }
 
@@ -962,68 +1005,77 @@ public final class MainActivity extends AppCompatActivity {
     private View buildConvPanel() {
         ScrollView scroll = new ScrollView(this);
         scroll.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        scroll.setVerticalScrollBarEnabled(false);
         scroll.setVisibility(View.GONE);
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(dp(14), dp(8), dp(14), dp(18));
+        col.setPadding(dp(16), dp(10), dp(16), dp(24));
 
-        spCategory = new Spinner(this);
-        String[] catLabels = new String[Converter.CATEGORIES.length];
-        for (int i = 0; i < catLabels.length; i++) catLabels[i] = categoryLabel(Converter.CATEGORIES[i]);
-        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, R.layout.item_spinner, catLabels);
-        catAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown);
-        styleSpinner(spCategory);
-        spCategory.setAdapter(catAdapter);
-        LinearLayout catCard = Ui.card(this);
-        catCard.setPadding(dp(8), dp(2), dp(8), dp(2));
-        catCard.addView(spCategory, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
-        col.addView(catCard, Ui.matchWrap(this, 6, 10, 0));
+        HorizontalScrollView catScroll = new HorizontalScrollView(this);
+        catScroll.setHorizontalScrollBarEnabled(false);
+        catScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        LinearLayout catRow = new LinearLayout(this);
+        catRow.setOrientation(LinearLayout.HORIZONTAL);
+        convChips = new TextView[Converter.CATEGORIES.length];
+        for (int i = 0; i < Converter.CATEGORIES.length; i++) {
+            final int idx = i;
+            TextView chip = Ui.chip(this, categoryLabel(Converter.CATEGORIES[i]));
+            chip.setOnClickListener(v -> selectCategory(idx));
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+            clp.setMarginEnd(dp(8));
+            catRow.addView(chip, clp);
+            convChips[i] = chip;
+        }
+        catScroll.addView(catRow, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        col.addView(catScroll, Ui.matchWrap(this, 4, 14, 0));
 
         etConvInput = new EditText(this);
         etConvInput.setHint("0");
         etConvInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-        etConvInput.setTextSize(26);
+        etConvInput.setTextSize(30);
+        etConvInput.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         etConvInput.setSingleLine(true);
         etConvInput.setBackground(null);
-        etConvInput.setPadding(dp(8), dp(6), dp(8), dp(6));
+        etConvInput.setPadding(0, dp(6), dp(8), dp(6));
         etConvInput.setTextColor(c(R.attr.cTextPrimary));
         etConvInput.setHintTextColor(c(R.attr.cTextHint));
 
         spFrom = new Spinner(this);
         spTo = new Spinner(this);
+        styleSpinner(spFrom);
+        styleSpinner(spTo);
 
         LinearLayout inCard = Ui.card(this);
-        inCard.setPadding(dp(14), dp(10), dp(10), dp(10));
-        TextView fromLabel = Ui.small(this, getString(R.string.conv_from));
-        inCard.addView(fromLabel);
+        inCard.setPadding(dp(18), dp(14), dp(14), dp(14));
+        inCard.addView(Ui.small(this, getString(R.string.conv_from)));
         LinearLayout inRow = new LinearLayout(this);
         inRow.setOrientation(LinearLayout.HORIZONTAL);
         inRow.setGravity(Gravity.CENTER_VERTICAL);
         inRow.addView(etConvInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        inRow.addView(spFrom, new LinearLayout.LayoutParams(dp(140), dp(48)));
+        inRow.addView(spFrom, new LinearLayout.LayoutParams(dp(136), dp(44)));
         inCard.addView(inRow);
         col.addView(inCard, Ui.matchWrap(this, 0, 0, 0));
 
-        TextView arrow = new TextView(this);
-        arrow.setText("↓");
-        arrow.setTextSize(20);
-        arrow.setGravity(Gravity.CENTER);
-        arrow.setTextColor(c(R.attr.cAccentText));
-        arrow.setBackground(Ui.round(getColor(R.color.seg_bg), dp(10), 0, 0));
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(dp(44), dp(36));
-        alp.gravity = Gravity.CENTER_HORIZONTAL;
-        alp.topMargin = dp(8);
-        alp.bottomMargin = dp(8);
-        col.addView(arrow, alp);
+        ImageButton swap = new ImageButton(this);
+        swap.setImageResource(R.drawable.ic_swap);
+        swap.setBackgroundResource(R.drawable.bg_swap_btn);
+        swap.setScaleType(ImageView.ScaleType.CENTER);
+        swap.setContentDescription(getString(R.string.conv_swap));
+        swap.setOnClickListener(v -> swapUnits());
+        LinearLayout.LayoutParams swLp = new LinearLayout.LayoutParams(dp(44), dp(44));
+        swLp.gravity = Gravity.CENTER_HORIZONTAL;
+        swLp.topMargin = dp(10);
+        swLp.bottomMargin = dp(10);
+        col.addView(swap, swLp);
 
         tvConvResult = new TextView(this);
-        tvConvResult.setTextSize(34);
-        tvConvResult.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
+        tvConvResult.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         tvConvResult.setTextColor(c(R.attr.cAccentText));
-        tvConvResult.setPadding(dp(8), dp(6), dp(8), dp(6));
-        tvConvResult.setSingleLine(true);
-        tvConvResult.setAutoSizeTextTypeUniformWithConfiguration(14, 34, 1, TypedValue.COMPLEX_UNIT_SP);
+        tvConvResult.setPadding(0, dp(6), dp(8), dp(6));
+        tvConvResult.setText("0");
+        tvConvResult.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        Ui.autoFit(tvConvResult, 16, 36);
         tvConvResult.setOnLongClickListener(v -> {
             copyToClipboard(tvConvResult.getText().toString());
             return true;
@@ -1032,22 +1084,17 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout outCard = new LinearLayout(this);
         outCard.setOrientation(LinearLayout.VERTICAL);
         outCard.setBackgroundResource(R.drawable.bg_result_card);
-        outCard.setPadding(dp(14), dp(10), dp(10), dp(10));
+        outCard.setPadding(dp(18), dp(14), dp(14), dp(14));
         outCard.addView(Ui.small(this, getString(R.string.conv_to)));
         LinearLayout outRow = new LinearLayout(this);
         outRow.setOrientation(LinearLayout.HORIZONTAL);
         outRow.setGravity(Gravity.CENTER_VERTICAL);
-        outRow.addView(tvConvResult, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        outRow.addView(spTo, new LinearLayout.LayoutParams(dp(140), dp(48)));
+        outRow.addView(tvConvResult, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        outRow.addView(spTo, new LinearLayout.LayoutParams(dp(136), dp(44)));
         outCard.addView(outRow);
         col.addView(outCard, Ui.matchWrap(this, 0, 0, 0));
 
         scroll.addView(col);
-
-        spCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { setupUnitSpinners(Converter.CATEGORIES[pos]); }
-            @Override public void onNothingSelected(AdapterView<?> p) {}
-        });
 
         AdapterView.OnItemSelectedListener recompute = new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { doConvert(); }
@@ -1062,14 +1109,30 @@ public final class MainActivity extends AppCompatActivity {
             @Override public void afterTextChanged(android.text.Editable s) { doConvert(); }
         });
 
-        setupUnitSpinners(Converter.CATEGORIES[0]);
+        selectCategory(0);
         return scroll;
     }
 
+    private void selectCategory(int index) {
+        convCategory = index;
+        for (int i = 0; i < convChips.length; i++) {
+            Ui.setChipState(convChips[i], i == index);
+        }
+        setupUnitSpinners(Converter.CATEGORIES[index]);
+    }
+
+    private void swapUnits() {
+        int a = spFrom.getSelectedItemPosition();
+        int b = spTo.getSelectedItemPosition();
+        if (a < 0 || b < 0) return;
+        spFrom.setSelection(b);
+        spTo.setSelection(a);
+    }
+
     private void styleSpinner(Spinner sp) {
-        sp.setBackground(null);
+        sp.setBackgroundResource(R.drawable.bg_unit_pill);
         sp.setPopupBackgroundDrawable(Ui.round(c(R.attr.cSurface), dp(14), c(R.attr.cStrokeSoft), dp(1)));
-        sp.setPadding(0, 0, 0, 0);
+        sp.setPadding(dp(12), 0, dp(8), 0);
     }
 
     private String categoryLabel(String key) {
@@ -1093,8 +1156,6 @@ public final class MainActivity extends AppCompatActivity {
         spFrom.setAdapter(adapter);
         ArrayAdapter<String> adapter2 = new ArrayAdapter<>(this, R.layout.item_spinner, names);
         adapter2.setDropDownViewResource(R.layout.item_spinner_dropdown);
-        styleSpinner(spFrom);
-        styleSpinner(spTo);
         spTo.setAdapter(adapter2);
         if (names.length > 1) spTo.setSelection(1);
         doConvert();
@@ -1103,7 +1164,7 @@ public final class MainActivity extends AppCompatActivity {
     private void doConvert() {
         if (spFrom.getAdapter() == null || spTo.getAdapter() == null) return;
         if (spFrom.getSelectedItem() == null || spTo.getSelectedItem() == null) return;
-        String category = Converter.CATEGORIES[spCategory.getSelectedItemPosition()];
+        String category = Converter.CATEGORIES[convCategory];
         String from = (String) spFrom.getSelectedItem();
         String to = (String) spTo.getSelectedItem();
         double input;
@@ -1115,18 +1176,5 @@ public final class MainActivity extends AppCompatActivity {
         }
         double out = Converter.convert(category, from, to, input);
         tvConvResult.setText(Fmt.result(out, store.getThousands()));
-    }
-
-    private LinearLayout.LayoutParams matchWrap() {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        lp.bottomMargin = dp(8);
-        return lp;
-    }
-
-    private void addSpace(LinearLayout parent, int h) {
-        View v = new View(this);
-        v.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(h)));
-        parent.addView(v);
     }
 }

@@ -59,4 +59,6 @@
     <string name="lang_system">لغة النظام</string>
     <string name="lang_arabic">العربية</string>
     <string name="lang_english">English</string>
+    <string name="action_back">رجوع</string>
+    <string name="conv_swap">تبديل الوحدات</string>
 </resources>

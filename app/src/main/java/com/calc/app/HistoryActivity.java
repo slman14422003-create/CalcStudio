@@ -5,13 +5,12 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,7 +20,8 @@ public final class HistoryActivity extends AppCompatActivity {
 
     private Store store;
     private RecyclerView rv;
-    private TextView empty;
+    private View empty;
+    private TextView clear;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +36,11 @@ public final class HistoryActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        int pad = Ui.dp(this, 14);
-        bar.setPadding(Ui.dp(this, 8), Ui.dp(this, 6), Ui.dp(this, 8), 0);
+        bar.setPadding(Ui.dp(this, 16), Ui.dp(this, 8), Ui.dp(this, 16), Ui.dp(this, 4));
 
         ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
         back.setImageResource(R.drawable.ic_back);
+        back.setContentDescription(getString(R.string.action_back));
         back.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 40)));
         back.setOnClickListener(v -> finish());
         bar.addView(back);
@@ -49,32 +49,52 @@ public final class HistoryActivity extends AppCompatActivity {
         spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
         bar.addView(spacer);
 
-        TextView clear = new TextView(this);
+        clear = new TextView(this);
         clear.setText(R.string.history_clear);
-        clear.setTextSize(17);
-        clear.setTextColor(Ui.attrColor(this, R.attr.cAccentText));
-        clear.setPadding(Ui.dp(this, 12), Ui.dp(this, 9), Ui.dp(this, 12), Ui.dp(this, 9));
+        clear.setTextSize(15);
+        clear.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        clear.setTextColor(getColor(R.color.bad));
+        clear.setGravity(Gravity.CENTER);
+        clear.setBackgroundResource(R.drawable.bg_pill);
+        clear.setPadding(Ui.dp(this, 16), 0, Ui.dp(this, 16), 0);
+        clear.setClickable(true);
+        clear.setFocusable(true);
         clear.setOnClickListener(v -> {
             store.clearHistory();
             reload();
         });
-        bar.addView(clear);
+        bar.addView(clear, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(this, 36)));
 
         root.addView(bar);
         root.addView(Ui.largeTitle(this, R.string.history_title));
 
-        empty = new TextView(this);
-        empty.setText(R.string.history_empty);
-        empty.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
-        empty.setTextSize(17);
-        empty.setGravity(Gravity.CENTER);
-        empty.setPadding(0, Ui.dp(this, 60), 0, 0);
-        root.addView(empty);
+        LinearLayout emptyBox = new LinearLayout(this);
+        emptyBox.setOrientation(LinearLayout.VERTICAL);
+        emptyBox.setGravity(Gravity.CENTER);
+        emptyBox.setPadding(Ui.dp(this, 32), 0, Ui.dp(this, 32), Ui.dp(this, 64));
+
+        ImageView emptyIcon = new ImageView(this);
+        emptyIcon.setImageResource(R.drawable.ic_history);
+        emptyIcon.setImageTintList(android.content.res.ColorStateList.valueOf(Ui.attrColor(this, R.attr.cTextHint)));
+        emptyIcon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        emptyBox.addView(emptyIcon, new LinearLayout.LayoutParams(Ui.dp(this, 64), Ui.dp(this, 64)));
+
+        TextView emptyText = new TextView(this);
+        emptyText.setText(R.string.history_empty);
+        emptyText.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
+        emptyText.setTextSize(17);
+        emptyText.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams etLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        etLp.topMargin = Ui.dp(this, 12);
+        emptyBox.addView(emptyText, etLp);
+
+        empty = emptyBox;
+        root.addView(empty, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         rv = new RecyclerView(this);
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setClipToPadding(false);
-        rv.setPadding(Ui.dp(this, 14), Ui.dp(this, 4), Ui.dp(this, 14), Ui.dp(this, 20));
+        rv.setPadding(Ui.dp(this, 16), Ui.dp(this, 4), Ui.dp(this, 16), Ui.dp(this, 24));
         rv.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(rv);
 
@@ -84,8 +104,10 @@ public final class HistoryActivity extends AppCompatActivity {
 
     private void reload() {
         List<HistoryItem> items = store.getHistory();
-        empty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-        rv.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
+        boolean none = items.isEmpty();
+        empty.setVisibility(none ? View.VISIBLE : View.GONE);
+        rv.setVisibility(none ? View.GONE : View.VISIBLE);
+        clear.setVisibility(none ? View.INVISIBLE : View.VISIBLE);
         rv.setAdapter(new HistoryAdapter(this, items, item -> {
             Intent data = new Intent();
             data.putExtra(MainActivity.EXTRA_RESTORE, item.expression);

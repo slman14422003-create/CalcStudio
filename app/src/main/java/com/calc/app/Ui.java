@@ -2,12 +2,17 @@ package com.calc.app;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.core.widget.TextViewCompat;
 
 public final class Ui {
 
@@ -28,20 +33,28 @@ public final class Ui {
     }
 
     public static LinearLayout row(Context c) {
+        return row(c, 1f);
+    }
+
+    public static LinearLayout row(Context c, float weight) {
         LinearLayout l = new LinearLayout(c);
         l.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, weight);
         l.setLayoutParams(lp);
         return l;
     }
 
     public static Button key(Context c, String text, int styleResId, float weight) {
+        return key(c, text, styleResId, weight, 3);
+    }
+
+    public static Button key(Context c, String text, int styleResId, float weight, int marginDp) {
         Button b = new Button(c, null, 0, styleResId);
         b.setText(text);
         b.setAllCaps(false);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, weight);
-        int m = dp(c, 3);
+        int m = dp(c, marginDp);
         lp.setMargins(m, m, m, m);
         b.setLayoutParams(lp);
         b.setPadding(0, 0, 0, 0);
@@ -53,8 +66,14 @@ public final class Ui {
         return b;
     }
 
-    public static android.graphics.drawable.GradientDrawable round(int color, int radius, int stroke, int strokeW) {
-        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+    public static void autoFit(TextView t, int minSp, int maxSp) {
+        t.setSingleLine(true);
+        t.setMaxLines(1);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(t, minSp, maxSp, 1, TypedValue.COMPLEX_UNIT_SP);
+    }
+
+    public static GradientDrawable round(int color, int radius, int stroke, int strokeW) {
+        GradientDrawable g = new GradientDrawable();
         g.setColor(color);
         g.setCornerRadius(radius);
         if (strokeW > 0) g.setStroke(strokeW, stroke);
@@ -64,11 +83,11 @@ public final class Ui {
     public static TextView largeTitle(Context c, int res) {
         TextView t = new TextView(c);
         t.setText(res);
-        t.setTextSize(34);
-        t.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        t.setTextSize(32);
+        t.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         t.setLetterSpacing(-0.01f);
         t.setTextColor(attrColor(c, R.attr.cTextPrimary));
-        t.setPadding(dp(c, 20), dp(c, 0), dp(c, 20), dp(c, 6));
+        t.setPadding(dp(c, 22), dp(c, 2), dp(c, 22), dp(c, 8));
         return t;
     }
 
@@ -76,6 +95,7 @@ public final class Ui {
         LinearLayout l = new LinearLayout(c);
         l.setOrientation(LinearLayout.VERTICAL);
         l.setBackgroundResource(R.drawable.bg_card);
+        l.setClipToOutline(true);
         return l;
     }
 
@@ -90,8 +110,66 @@ public final class Ui {
         TextView t = new TextView(c);
         t.setText(text);
         t.setTextSize(13);
+        t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         t.setTextColor(attrColor(c, R.attr.cTextSecondary));
         return t;
+    }
+
+    public static TextView chip(Context c, String text) {
+        TextView t = new TextView(c);
+        t.setText(text);
+        t.setTextSize(14);
+        t.setSingleLine(true);
+        t.setGravity(Gravity.CENTER);
+        t.setClickable(true);
+        t.setFocusable(true);
+        setChipState(t, false);
+        t.setPadding(dp(c, 16), 0, dp(c, 16), 0);
+        return t;
+    }
+
+    public static void setChipState(TextView t, boolean selected) {
+        Context c = t.getContext();
+        int left = t.getPaddingLeft();
+        int right = t.getPaddingRight();
+        t.setBackgroundResource(selected ? R.drawable.bg_chip_selected : R.drawable.bg_chip_idle);
+        t.setPadding(left, 0, right, 0);
+        t.setTextColor(selected ? c.getColor(R.color.on_accent) : attrColor(c, R.attr.cTextPrimary));
+        t.setTypeface(Typeface.create(selected ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+    }
+
+    public static void setTagState(TextView t, boolean active) {
+        Context c = t.getContext();
+        int left = t.getPaddingLeft();
+        int top = t.getPaddingTop();
+        int right = t.getPaddingRight();
+        int bottom = t.getPaddingBottom();
+        t.setBackgroundResource(active ? R.drawable.bg_tag_active : R.drawable.bg_tag_idle);
+        t.setPadding(left, top, right, bottom);
+        t.setTextColor(active ? c.getColor(R.color.on_accent) : attrColor(c, R.attr.cTextSecondary));
+    }
+
+    public static ImageView tile(Context c, int iconRes, int colorRes) {
+        ImageView v = new ImageView(c);
+        v.setImageResource(iconRes);
+        v.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        int p = dp(c, 5);
+        v.setPadding(p, p, p, p);
+        v.setBackground(round(c.getColor(colorRes), dp(c, 8), 0, 0));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(c, 30), dp(c, 30));
+        lp.setMarginEnd(dp(c, 14));
+        v.setLayoutParams(lp);
+        v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return v;
+    }
+
+    public static View divider(Context c, int startMarginDp) {
+        View d = new View(c);
+        d.setBackgroundColor(attrColor(c, R.attr.cStrokeSoft));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        lp.setMarginStart(dp(c, startMarginDp));
+        d.setLayoutParams(lp);
+        return d;
     }
 
 }
