@@ -14,6 +14,7 @@ import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.Session
 import com.google.ai.edge.litertlm.SessionConfig
 import java.util.concurrent.CancellationException
+import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
 
 class LocalLlm private constructor() {
@@ -33,6 +34,9 @@ class LocalLlm private constructor() {
     private var phi = false
     private var qwen3 = false
     private val turns = ArrayList<Array<String>>()
+    private val worker = Executors.newSingleThreadExecutor()
+    private var usingGpu = false
+    private var cachePath = ""
 
     @Volatile
     private var busy = false
@@ -46,21 +50,71 @@ class LocalLlm private constructor() {
     val isBusy: Boolean
         get() = busy
 
+    val backendName: String
+        get() = if (usingGpu) "GPU" else "CPU"
+
+    private fun buildEngine(path: String, cache: String, gpu: Boolean): Engine {
+        val backend = if (gpu) Backend.GPU() else Backend.CPU(
+            threadCount = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)
+        )
+        val created = Engine(EngineConfig(modelPath = path, backend = backend, cacheDir = cache))
+        try {
+            runBlocking { created.initialize() }
+        } catch (t: Throwable) {
+            try {
+                created.close()
+            } catch (ignored: Throwable) {
+            }
+            throw t
+        }
+        return created
+    }
+
     @Synchronized
     fun load(modelPath: String, cacheDir: String) {
         if (engine != null && loadedPath == modelPath) return
         release()
         phi = modelPath.lowercase().contains("phi")
         qwen3 = modelPath.lowercase().contains("qwen3")
-        val config = EngineConfig(
-            modelPath = modelPath,
-            backend = Backend.CPU(threadCount = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)),
-            cacheDir = cacheDir
-        )
-        val created = Engine(config)
-        runBlocking { created.initialize() }
+        cachePath = cacheDir
+        var created: Engine? = null
+        try {
+            created = buildEngine(modelPath, cacheDir, true)
+            usingGpu = true
+        } catch (t: Throwable) {
+            usingGpu = false
+        }
+        if (created == null) created = buildEngine(modelPath, cacheDir, false)
         engine = created
         loadedPath = modelPath
+    }
+
+    @Synchronized
+    private fun switchToCpu() {
+        val path = loadedPath ?: return
+        closeConversation()
+        try {
+            engine?.close()
+        } catch (ignored: Throwable) {
+        }
+        engine = null
+        usingGpu = false
+        engine = buildEngine(path, cachePath, false)
+    }
+
+    fun warmUp(systemPrompt: String) {
+        worker.execute {
+            if (busy || rawMode) return@execute
+            val current = engine ?: return@execute
+            if (systemPrompt != system) {
+                reset()
+                system = systemPrompt
+            }
+            try {
+                ensureConversation(current)
+            } catch (ignored: Throwable) {
+            }
+        }
     }
 
     fun cancel() {
@@ -92,11 +146,13 @@ class LocalLlm private constructor() {
         }
         busy = true
         cancelled = false
-        if (systemPrompt != system) {
-            reset()
-            system = systemPrompt
+        worker.execute {
+            if (systemPrompt != system) {
+                reset()
+                system = systemPrompt
+            }
+            dispatch(prompt, listener, true)
         }
-        dispatch(prompt, listener, true)
     }
 
     private fun dispatch(prompt: String, listener: Listener, canRetry: Boolean) {
@@ -112,6 +168,7 @@ class LocalLlm private constructor() {
             systemInstruction = if (system.isBlank()) null else Contents.of(system),
             samplerConfig = sampler(),
             maxOutputToken = 320,
+            prefillPrefaceOnInit = true,
             chatTemplate = if (phi) PHI_TEMPLATE else if (qwen3) QWEN3_TEMPLATE else CHAT_TEMPLATE
         )
         val created = current.createConversation(config)
@@ -163,6 +220,17 @@ class LocalLlm private constructor() {
         }
         val msg = t.message ?: ""
         val lower = msg.lowercase()
+        if (usingGpu && nothingSent && !lower.contains("template")) {
+            Thread {
+                try {
+                    switchToCpu()
+                    dispatch(prompt, listener, canRetry)
+                } catch (e: Throwable) {
+                    finishError(listener, e.message ?: "Error")
+                }
+            }.start()
+            return
+        }
         if (canRetry && nothingSent) {
             if (!rawMode && lower.contains("template")) {
                 rawMode = true

@@ -641,6 +641,7 @@ public final class AiActivity extends AppCompatActivity {
             String error = null;
             try {
                 llm.load(path, cache);
+                llm.warmUp(SYSTEM_PROMPT);
             } catch (Throwable t) {
                 error = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
             }
@@ -652,7 +653,7 @@ public final class AiActivity extends AppCompatActivity {
                     tvModelInfo.setText(getString(R.string.ai_error) + ": " + err);
                 } else {
                     long mb = modelFile().length() / (1024 * 1024);
-                    tvModelInfo.setText(getString(R.string.ai_model_ready) + " \u00b7 " + mb + " MB");
+                    tvModelInfo.setText(getString(R.string.ai_model_ready) + " \u00b7 " + mb + " MB \u00b7 " + llm.getBackendName());
                 }
             });
         });
