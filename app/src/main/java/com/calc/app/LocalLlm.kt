@@ -30,6 +30,8 @@ class LocalLlm private constructor() {
     private var activeSession: Session? = null
     private var system: String = ""
     private var rawMode = false
+    private var phi = false
+    private var qwen3 = false
     private val turns = ArrayList<Array<String>>()
 
     @Volatile
@@ -48,6 +50,8 @@ class LocalLlm private constructor() {
     fun load(modelPath: String, cacheDir: String) {
         if (engine != null && loadedPath == modelPath) return
         release()
+        phi = modelPath.lowercase().contains("phi")
+        qwen3 = modelPath.lowercase().contains("qwen3")
         val config = EngineConfig(
             modelPath = modelPath,
             backend = Backend.CPU(threadCount = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)),
@@ -108,7 +112,7 @@ class LocalLlm private constructor() {
             systemInstruction = if (system.isBlank()) null else Contents.of(system),
             samplerConfig = sampler(),
             maxOutputToken = 320,
-            chatTemplate = CHAT_TEMPLATE
+            chatTemplate = if (phi) PHI_TEMPLATE else if (qwen3) QWEN3_TEMPLATE else CHAT_TEMPLATE
         )
         val created = current.createConversation(config)
         conversation = created
@@ -176,16 +180,26 @@ class LocalLlm private constructor() {
 
     private fun buildRawPrompt(prompt: String): String {
         val sb = StringBuilder()
+        val from = if (turns.size > 4) turns.size - 4 else 0
+        if (phi) {
+            if (system.isNotBlank()) sb.append("<|system|>").append(system).append("<|end|>")
+            for (i in from until turns.size) {
+                sb.append("<|user|>").append(turns[i][0]).append("<|end|>")
+                sb.append("<|assistant|>").append(turns[i][1]).append("<|end|>")
+            }
+            sb.append("<|user|>").append(prompt).append("<|end|><|assistant|>")
+            return sb.toString()
+        }
         if (system.isNotBlank()) {
             sb.append("<|im_start|>system\n").append(system).append("<|im_end|>\n")
         }
-        val from = if (turns.size > 4) turns.size - 4 else 0
         for (i in from until turns.size) {
             sb.append("<|im_start|>user\n").append(turns[i][0]).append("<|im_end|>\n")
             sb.append("<|im_start|>assistant\n").append(turns[i][1]).append("<|im_end|>\n")
         }
         sb.append("<|im_start|>user\n").append(prompt).append("<|im_end|>\n")
         sb.append("<|im_start|>assistant\n")
+        if (qwen3) sb.append("<think>\n\n</think>\n\n")
         return sb.toString()
     }
 
@@ -204,7 +218,7 @@ class LocalLlm private constructor() {
                 listOf(InputData.Text(buildRawPrompt(prompt))),
                 object : ResponseCallback {
                     override fun onNext(response: String) {
-                        val clean = response.replace("<|im_end|>", "").replace("<|endoftext|>", "")
+                        val clean = response.replace("<|im_end|>", "").replace("<|end|>", "").replace("<|endoftext|>", "")
                         if (clean.isEmpty()) return
                         reply.append(clean)
                         if (!cancelled) listener.onToken(clean)
@@ -286,6 +300,24 @@ class LocalLlm private constructor() {
 {%- if add_generation_prompt -%}
 <|im_start|>assistant
 {% endif -%}
+""".trimStart()
+
+        private val QWEN3_TEMPLATE = CHAT_TEMPLATE.replace(
+            "<|im_start|>assistant\n{% endif -%}",
+            "<|im_start|>assistant\n<think>\n\n</think>\n\n{% endif -%}"
+        )
+
+        private val PHI_TEMPLATE = """
+{%- for message in messages -%}
+<|{{ message['role'] }}|>
+{%- if message['content'] is string -%}
+{{ message['content'] }}
+{%- else -%}
+{%- for part in message['content'] -%}{%- if part['type'] == 'text' -%}{{ part['text'] }}{%- endif -%}{%- endfor -%}
+{%- endif -%}
+<|end|>
+{%- endfor -%}
+{%- if add_generation_prompt -%}<|assistant|>{%- endif -%}
 """.trimStart()
 
         @JvmStatic

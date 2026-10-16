@@ -120,6 +120,7 @@ public final class AiActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> saveLauncher;
     private TextView chipSmall;
     private TextView chipBalanced;
+    private TextView chipBig;
 
     private static final String SYSTEM_PROMPT = "You are a math tutor in a calculator app. "
             + "Be brief: at most 5 short numbered steps, plain text, no LaTeX, no markdown. "
@@ -130,12 +131,14 @@ public final class AiActivity extends AppCompatActivity {
 
     private static final String BASE_URL = "https://huggingface.co/leuconoe/litert-lm-unity-quantized/resolve/main/";
     private static final String URL_SMALL = BASE_URL + "qwen2.5-0.5b-instruct/Qwen2.5-0.5B-Instruct_wi4b64_ekv1280.litertlm";
+    private static final String URL_BIG = "https://huggingface.co/litert-community/Qwen3-1.7B/resolve/main/Qwen3_1.7B.litertlm";
     private static final String URL_BALANCED = BASE_URL + "qwen2.5-1.5b-instruct/Qwen2.5-1.5B-Instruct_wi4b64_ekv4096.litertlm";
 
-    private void selectPreset(boolean small) {
-        etUrl.setText(small ? URL_SMALL : URL_BALANCED);
-        Ui.setChipState(chipSmall, small);
-        Ui.setChipState(chipBalanced, !small);
+    private void selectPreset(int which) {
+        etUrl.setText(which == 0 ? URL_SMALL : which == 1 ? URL_BALANCED : URL_BIG);
+        Ui.setChipState(chipSmall, which == 0);
+        Ui.setChipState(chipBalanced, which == 1);
+        Ui.setChipState(chipBig, which == 2);
     }
 
     private File modelFile() {
@@ -253,15 +256,20 @@ public final class AiActivity extends AppCompatActivity {
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
         chipSmall = Ui.chip(this, getString(R.string.ai_preset_small));
         chipBalanced = Ui.chip(this, getString(R.string.ai_preset_balanced));
-        chipSmall.setOnClickListener(v -> selectPreset(true));
-        chipBalanced.setOnClickListener(v -> selectPreset(false));
+        chipBig = Ui.chip(this, getString(R.string.ai_preset_big));
+        chipSmall.setOnClickListener(v -> selectPreset(0));
+        chipBalanced.setOnClickListener(v -> selectPreset(1));
+        chipBig.setOnClickListener(v -> selectPreset(2));
         LinearLayout.LayoutParams c1 = new LinearLayout.LayoutParams(0, dp(36), 1f);
         c1.setMarginEnd(dp(8));
         presetRow.addView(chipSmall, c1);
         presetRow.addView(chipBalanced, new LinearLayout.LayoutParams(0, dp(36), 1f));
         LinearLayout.LayoutParams prLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
-        prLp.bottomMargin = dp(10);
+        prLp.bottomMargin = dp(8);
         setupCard.addView(presetRow, prLp);
+        LinearLayout.LayoutParams bigLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
+        bigLp.bottomMargin = dp(10);
+        setupCard.addView(chipBig, bigLp);
 
         etUrl = new EditText(this);
         etUrl.setHint(R.string.ai_url_hint);
@@ -273,8 +281,9 @@ public final class AiActivity extends AppCompatActivity {
         etUrl.setBackground(Ui.round(getColor(R.color.field), dp(14), 0, 0));
         etUrl.setPadding(dp(14), dp(12), dp(14), dp(12));
         etUrl.setText(store.getAiUrl());
-        if (etUrl.getText().length() == 0 || URL_BALANCED.contentEquals(etUrl.getText())) selectPreset(false);
-        else if (URL_SMALL.contentEquals(etUrl.getText())) selectPreset(true);
+        if (etUrl.getText().length() == 0 || URL_BALANCED.contentEquals(etUrl.getText())) selectPreset(1);
+        else if (URL_SMALL.contentEquals(etUrl.getText())) selectPreset(0);
+        else if (URL_BIG.contentEquals(etUrl.getText())) selectPreset(2);
         setupCard.addView(etUrl, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         LinearLayout btnRow = new LinearLayout(this);
@@ -559,7 +568,7 @@ public final class AiActivity extends AppCompatActivity {
     }
 
     private static String clean(String s) {
-        return s.replace("**", "").replace("__", "").replaceAll("(?m)^#{1,6}\\s*", "").replaceAll("\\n\\s*\\n+", "\n").trim();
+        return s.replaceAll("(?s)<think>.*?</think>", "").replaceAll("(?s)<think>.*$", "").replace("**", "").replace("__", "").replaceAll("(?m)^#{1,6}\\s*", "").replaceAll("\\n\\s*\\n+", "\n").trim();
     }
 
     private void newChat() {
@@ -746,6 +755,10 @@ public final class AiActivity extends AppCompatActivity {
                 int code = conn.getResponseCode();
                 if (code / 100 != 2) throw new IllegalStateException("HTTP " + code);
                 final long total = conn.getContentLengthLong();
+                File target = modelFile().getParentFile();
+                if (total > 0 && target != null && target.getUsableSpace() < total + (200L << 20)) {
+                    throw new IllegalStateException(getString(R.string.ai_no_space));
+                }
                 long done = 0;
                 long lastUi = 0;
                 try (InputStream in = conn.getInputStream(); OutputStream out = new FileOutputStream(tmp)) {

@@ -121,4 +121,6 @@
     <string name="ai_copy">Copy</string>
     <string name="ai_copied">Copied</string>
     <string name="ai_empty_reply">No answer was generated, try again</string>
+    <string name="ai_preset_big">Scientific \u00b7 2 GB (Qwen3 1.7B)</string>
+    <string name="ai_no_space">Not enough free storage for this model</string>
 </resources>

@@ -96,4 +96,6 @@
     <string name="ai_copy">نسخ</string>
     <string name="ai_copied">تم النسخ</string>
     <string name="ai_empty_reply">لم يتم توليد إجابة، حاول مرة أخرى</string>
+    <string name="ai_preset_big">علمي \u00b7 2 جيجا (Qwen3 1.7B)</string>
+    <string name="ai_no_space">لا توجد مساحة تخزين كافية لهذا النموذج</string>
 </resources>
