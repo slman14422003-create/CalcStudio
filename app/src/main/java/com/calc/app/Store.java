@@ -27,6 +27,7 @@ public final class Store {
     private static final String K_HP_DIGITS = "hp_digits";
     private static final String K_AUTO_PREVIEW = "auto_preview";
     private static final String K_THEME = "theme";
+    private static final String K_AI_URL = "ai_url";
     private static final String K_KEEP_ON = "keep_on";
     private static final String K_PROG_BITS = "prog_bits";
     private static final String K_CONV_CAT = "conv_cat";
@@ -68,6 +69,9 @@ public final class Store {
 
     public boolean getAutoPreview() { return prefs.getBoolean(K_AUTO_PREVIEW, true); }
     public void setAutoPreview(boolean b) { prefs.edit().putBoolean(K_AUTO_PREVIEW, b).apply(); }
+
+    public String getAiUrl() { return prefs.getString(K_AI_URL, ""); }
+    public void setAiUrl(String u) { prefs.edit().putString(K_AI_URL, u).apply(); }
 
     public int getTheme() { return prefs.getInt(K_THEME, 0); }
     public void setTheme(int t) { prefs.edit().putInt(K_THEME, t).apply(); }

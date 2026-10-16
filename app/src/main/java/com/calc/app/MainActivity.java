@@ -319,6 +319,16 @@ public final class MainActivity extends AppCompatActivity {
         titleBox.addView(tvSubtitle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         bar.addView(titleBox);
 
+        ImageButton btnAi = iconButton(R.drawable.ic_ai);
+        btnAi.setContentDescription(getString(R.string.ai_title));
+        btnAi.setOnClickListener(v -> {
+            Intent i = new Intent(this, AiActivity.class);
+            String seed = currentExpr.isEmpty() ? "" : autoClose(currentExpr);
+            if (!seed.isEmpty()) i.putExtra(AiActivity.EXTRA_PROBLEM, seed);
+            startActivity(i);
+        });
+        bar.addView(btnAi);
+
         ImageButton btnSettings = iconButton(R.drawable.ic_settings);
         btnSettings.setContentDescription(getString(R.string.action_settings));
         btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
