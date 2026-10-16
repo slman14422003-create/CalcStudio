@@ -105,6 +105,17 @@ public final class AiActivity extends AppCompatActivity {
     private ScrollView scroll;
     private final StringBuffer output = new StringBuffer();
     private final Handler ui = new Handler(Looper.getMainLooper());
+    private volatile boolean waiting = false;
+    private int dotStep = 0;
+    private final Runnable dotsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!waiting || activeBody == null) return;
+            dotStep = (dotStep + 1) % 4;
+            activeBody.setText(getString(R.string.ai_thinking).replace("\u2026", "") + "...".substring(0, dotStep));
+            ui.postDelayed(this, 500);
+        }
+    };
     private final AtomicBoolean flushPending = new AtomicBoolean(false);
     private final Runnable flushRunnable = new Runnable() {
         @Override
@@ -171,6 +182,8 @@ public final class AiActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        waiting = false;
+        ui.removeCallbacks(dotsRunnable);
         ui.removeCallbacks(flushRunnable);
         downloadCancelled = true;
         io.shutdown();
@@ -577,6 +590,8 @@ public final class AiActivity extends AppCompatActivity {
         llm.reset();
         chatList.removeAllViews();
         chatList.addView(emptyState);
+        waiting = false;
+        ui.removeCallbacks(dotsRunnable);
         activeBody = null;
         activeBubble = null;
         output.setLength(0);
@@ -864,6 +879,9 @@ public final class AiActivity extends AppCompatActivity {
         addAiBubble(exact);
         output.setLength(0);
         setSendState(true);
+        waiting = true;
+        dotStep = 0;
+        ui.postDelayed(dotsRunnable, 500);
         scrollToEnd();
 
         final TextView body = activeBody;
@@ -872,12 +890,13 @@ public final class AiActivity extends AppCompatActivity {
             @Override
             public void onToken(String text) {
                 output.append(text);
-                scheduleFlush();
             }
 
             @Override
             public void onDone() {
                 runOnUiThread(() -> {
+                    waiting = false;
+                    ui.removeCallbacks(dotsRunnable);
                     ui.removeCallbacks(flushRunnable);
                     flushPending.set(false);
                     setSendState(false);
@@ -895,6 +914,8 @@ public final class AiActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
+                    waiting = false;
+                    ui.removeCallbacks(dotsRunnable);
                     ui.removeCallbacks(flushRunnable);
                     flushPending.set(false);
                     setSendState(false);
