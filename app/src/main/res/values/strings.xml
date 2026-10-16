@@ -114,4 +114,11 @@
     <string name="ai_save_model">Save to storage</string>
     <string name="ai_saving">Saving model\u2026</string>
     <string name="ai_saved">Model saved</string>
+    <string name="ai_new_chat">New chat</string>
+    <string name="ai_model_menu">Model options</string>
+    <string name="ai_welcome_title">What do you want to solve?</string>
+    <string name="ai_sample_equation">Solve 2x + 5 = 17</string>
+    <string name="ai_copy">Copy</string>
+    <string name="ai_copied">Copied</string>
+    <string name="ai_empty_reply">No answer was generated, try again</string>
 </resources>

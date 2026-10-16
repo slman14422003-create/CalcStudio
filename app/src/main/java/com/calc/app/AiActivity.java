@@ -1,5 +1,8 @@
 package com.calc.app;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.provider.OpenableColumns;
@@ -12,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -22,6 +26,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -80,23 +87,37 @@ public final class AiActivity extends AppCompatActivity {
     private volatile boolean working = false;
 
     private LinearLayout setupCard;
-    private LinearLayout solveCard;
-    private LinearLayout resultCard;
+    private ScrollView setupScroll;
+    private LinearLayout chatArea;
+    private LinearLayout chatList;
+    private LinearLayout emptyState;
+    private LinearLayout composer;
     private TextView tvStatus;
     private ProgressBar progress;
     private EditText etUrl;
     private EditText etProblem;
-    private TextView btnSolve;
+    private TextView btnSend;
+    private TextView btnNew;
+    private TextView btnMenu;
     private TextView tvModelInfo;
-    private TextView tvExact;
-    private TextView tvOutput;
     private ScrollView scroll;
     private final StringBuilder output = new StringBuilder();
+    private TextView activeBody;
+    private LinearLayout activeBubble;
 
     private ActivityResultLauncher<String[]> importLauncher;
     private ActivityResultLauncher<String> saveLauncher;
     private TextView chipSmall;
     private TextView chipBalanced;
+
+    private static final String SYSTEM_PROMPT = "You are a careful math tutor inside a calculator app. "
+            + "Reply in the language requested in the message. "
+            + "Use short numbered steps in plain text. Never use LaTeX or markdown symbols such as ** or #. "
+            + "Check every arithmetic step before writing it. "
+            + "If a verified result is given, it is correct and your final answer must be exactly that result. "
+            + "If the input is an algebraic expression without an equals sign, simplify it and never invent values for the variables. "
+            + "End a math answer with one line that starts with Answer:. "
+            + "If the message is not about math, answer it briefly and helpfully.";
 
     private static final String BASE_URL = "https://huggingface.co/leuconoe/litert-lm-unity-quantized/resolve/main/";
     private static final String URL_SMALL = BASE_URL + "qwen2.5-0.5b-instruct/Qwen2.5-0.5B-Instruct_wi4b64_ekv1280.litertlm";
@@ -151,38 +172,58 @@ public final class AiActivity extends AppCompatActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(c(R.attr.cBg));
-        root.setFitsSystemWindows(true);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(b.left, b.top, b.right, b.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(16), dp(8), dp(16), dp(4));
+        bar.setPadding(dp(12), dp(8), dp(12), dp(6));
         ImageButton back = new ImageButton(this, null, 0, R.style.IconButton);
         back.setImageResource(R.drawable.ic_back);
         back.setContentDescription(getString(R.string.action_back));
         back.setLayoutParams(new LinearLayout.LayoutParams(dp(42), dp(42)));
         back.setOnClickListener(v -> finish());
         bar.addView(back);
+
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
+        titleBox.setPadding(dp(10), 0, dp(10), 0);
+        TextView title = new TextView(this);
+        title.setText(R.string.ai_title);
+        title.setTextSize(20);
+        title.setSingleLine(true);
+        title.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        title.setTextColor(c(R.attr.cTextPrimary));
+        titleBox.addView(title);
+        tvModelInfo = new TextView(this);
+        tvModelInfo.setTextSize(12);
+        tvModelInfo.setSingleLine(true);
+        tvModelInfo.setTextColor(c(R.attr.cTextSecondary));
+        titleBox.addView(tvModelInfo);
+        bar.addView(titleBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        btnNew = headerAction(getString(R.string.ai_new_chat));
+        btnNew.setOnClickListener(v -> newChat());
+        bar.addView(btnNew);
+        btnMenu = headerAction("⋮");
+        btnMenu.setTextSize(20);
+        btnMenu.setContentDescription(getString(R.string.ai_model_menu));
+        btnMenu.setOnClickListener(this::showModelMenu);
+        bar.addView(btnMenu);
         root.addView(bar);
-        root.addView(Ui.largeTitle(this, R.string.ai_title));
 
-        scroll = new ScrollView(this);
-        scroll.setFillViewport(false);
-        scroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(16), 0, dp(16), dp(24));
-        scroll.addView(content, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(scroll);
+        setupScroll = new ScrollView(this);
+        setupScroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        LinearLayout setupHost = new LinearLayout(this);
+        setupHost.setOrientation(LinearLayout.VERTICAL);
+        setupHost.setPadding(dp(16), dp(8), dp(16), dp(24));
+        setupScroll.addView(setupHost, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        root.addView(setupScroll);
 
-        TextView sub = new TextView(this);
-        sub.setText(R.string.ai_subtitle);
-        sub.setTextSize(14);
-        sub.setTextColor(c(R.attr.cTextSecondary));
-        sub.setPadding(dp(6), 0, dp(6), dp(12));
-        content.addView(sub);
-
-        // setup card
         setupCard = Ui.card(this);
         setupCard.setPadding(dp(18), dp(16), dp(18), dp(16));
         TextView setupTitle = new TextView(this);
@@ -253,96 +294,145 @@ public final class AiActivity extends AppCompatActivity {
         tvStatus.setPadding(0, dp(8), 0, 0);
         tvStatus.setVisibility(View.GONE);
         setupCard.addView(tvStatus);
-        content.addView(setupCard, Ui.matchWrap(this, 0, 12, 0));
+        setupHost.addView(setupCard, Ui.matchWrap(this, 0, 12, 0));
 
-        // solve card
-        solveCard = Ui.card(this);
-        solveCard.setPadding(dp(18), dp(14), dp(18), dp(16));
+        chatArea = new LinearLayout(this);
+        chatArea.setOrientation(LinearLayout.VERTICAL);
+        chatArea.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        LinearLayout infoRow = new LinearLayout(this);
-        infoRow.setOrientation(LinearLayout.HORIZONTAL);
-        infoRow.setGravity(Gravity.CENTER_VERTICAL);
-        tvModelInfo = new TextView(this);
-        tvModelInfo.setTextSize(13);
-        tvModelInfo.setTextColor(c(R.attr.cAccentText));
-        infoRow.addView(tvModelInfo, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        solveCard.addView(infoRow);
+        scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
+        scroll.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        chatList = new LinearLayout(this);
+        chatList.setOrientation(LinearLayout.VERTICAL);
+        chatList.setPadding(dp(14), dp(8), dp(14), dp(12));
+        scroll.addView(chatList, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        chatArea.addView(scroll);
 
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.CENTER_VERTICAL);
-        TextView share = actionText(getString(R.string.ai_share_model), c(R.attr.cAccentText));
-        share.setOnClickListener(v -> shareModel());
-        TextView save = actionText(getString(R.string.ai_save_model), c(R.attr.cAccentText));
-        save.setOnClickListener(v -> saveLauncher.launch(modelFile().getName()));
-        TextView remove = actionText(getString(R.string.ai_remove_model), getColor(R.color.bad));
-        remove.setOnClickListener(v -> removeModel());
-        actions.addView(share);
-        actions.addView(save);
-        actions.addView(remove);
-        solveCard.addView(actions);
+        emptyState = buildEmptyState();
+        chatList.addView(emptyState);
+
+        composer = new LinearLayout(this);
+        composer.setOrientation(LinearLayout.HORIZONTAL);
+        composer.setGravity(Gravity.BOTTOM);
+        composer.setPadding(dp(12), dp(6), dp(12), dp(10));
 
         etProblem = new EditText(this);
         etProblem.setHint(R.string.ai_problem_hint);
-        etProblem.setMinLines(3);
-        etProblem.setGravity(Gravity.TOP | Gravity.START);
+        etProblem.setMinHeight(dp(48));
+        etProblem.setMaxLines(5);
+        etProblem.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         etProblem.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        etProblem.setTextSize(18);
+        etProblem.setTextSize(16);
         etProblem.setTextColor(c(R.attr.cTextPrimary));
         etProblem.setHintTextColor(c(R.attr.cTextHint));
-        etProblem.setBackground(Ui.round(getColor(R.color.field), dp(16), 0, 0));
-        etProblem.setPadding(dp(14), dp(12), dp(14), dp(12));
-        LinearLayout.LayoutParams epLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        epLp.topMargin = dp(10);
-        solveCard.addView(etProblem, epLp);
+        etProblem.setBackground(Ui.round(c(R.attr.cSurface), dp(24), c(R.attr.cStrokeSoft), dp(1)));
+        etProblem.setPadding(dp(18), dp(10), dp(18), dp(10));
+        LinearLayout.LayoutParams epLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        epLp.setMarginEnd(dp(8));
+        composer.addView(etProblem, epLp);
 
-        btnSolve = pill(getString(R.string.ai_solve), true);
-        btnSolve.setOnClickListener(v -> onSolveClicked());
-        LinearLayout.LayoutParams bsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
-        bsLp.topMargin = dp(12);
-        solveCard.addView(btnSolve, bsLp);
-        content.addView(solveCard, Ui.matchWrap(this, 0, 12, 0));
-
-        // result card
-        resultCard = Ui.card(this);
-        resultCard.setPadding(dp(18), dp(14), dp(18), dp(16));
-        tvExact = new TextView(this);
-        tvExact.setTextSize(22);
-        tvExact.setTextColor(c(R.attr.cAccentText));
-        tvExact.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-        tvExact.setTextIsSelectable(true);
-        tvExact.setVisibility(View.GONE);
-        resultCard.addView(tvExact);
-        tvOutput = new TextView(this);
-        tvOutput.setTextSize(16);
-        tvOutput.setLineSpacing(0, 1.15f);
-        tvOutput.setTextColor(c(R.attr.cTextPrimary));
-        tvOutput.setTextIsSelectable(true);
-        LinearLayout.LayoutParams toLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        toLp.topMargin = dp(8);
-        resultCard.addView(tvOutput, toLp);
-        TextView disclaimer = new TextView(this);
-        disclaimer.setText(R.string.ai_disclaimer);
-        disclaimer.setTextSize(12);
-        disclaimer.setTextColor(c(R.attr.cTextHint));
-        LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        dLp.topMargin = dp(12);
-        resultCard.addView(disclaimer, dLp);
-        resultCard.setVisibility(View.GONE);
-        content.addView(resultCard, Ui.matchWrap(this, 0, 0, 0));
+        btnSend = new TextView(this);
+        btnSend.setGravity(Gravity.CENTER);
+        btnSend.setTextSize(22);
+        btnSend.setTextColor(getColor(R.color.on_accent));
+        btnSend.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        btnSend.setBackgroundResource(R.drawable.bg_pill_accent);
+        btnSend.setClickable(true);
+        btnSend.setFocusable(true);
+        btnSend.setContentDescription(getString(R.string.ai_solve));
+        btnSend.setOnClickListener(v -> onSendClicked());
+        composer.addView(btnSend, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        setSendState(false);
+        chatArea.addView(composer);
+        root.addView(chatArea);
 
         setContentView(root);
     }
 
-    private TextView actionText(String text, int color) {
+    private LinearLayout buildEmptyState() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER_HORIZONTAL);
+        box.setPadding(dp(8), dp(40), dp(8), dp(8));
+
+        TextView badge = new TextView(this);
+        badge.setText("∑");
+        badge.setTextSize(30);
+        badge.setGravity(Gravity.CENTER);
+        badge.setTextColor(c(R.attr.cAccentText));
+        badge.setBackground(Ui.round(c(R.attr.cAccentSoft), dp(32), 0, 0));
+        box.addView(badge, new LinearLayout.LayoutParams(dp(64), dp(64)));
+
+        TextView hello = new TextView(this);
+        hello.setText(R.string.ai_welcome_title);
+        hello.setTextSize(22);
+        hello.setGravity(Gravity.CENTER);
+        hello.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        hello.setTextColor(c(R.attr.cTextPrimary));
+        LinearLayout.LayoutParams hLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hLp.topMargin = dp(16);
+        box.addView(hello, hLp);
+
+        TextView desc = new TextView(this);
+        desc.setText(R.string.ai_subtitle);
+        desc.setTextSize(14);
+        desc.setGravity(Gravity.CENTER);
+        desc.setTextColor(c(R.attr.cTextSecondary));
+        LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dLp.topMargin = dp(6);
+        dLp.bottomMargin = dp(22);
+        box.addView(desc, dLp);
+
+        String[] samples = {"(125 + 75) × 3 − 40", "sqrt(144) + 2^5", getString(R.string.ai_sample_equation)};
+        for (String s : samples) {
+            TextView chip = new TextView(this);
+            chip.setText(s);
+            chip.setTextSize(15);
+            chip.setGravity(Gravity.CENTER);
+            chip.setSingleLine(true);
+            chip.setTextColor(c(R.attr.cTextPrimary));
+            chip.setBackground(Ui.round(c(R.attr.cSurface), dp(20), c(R.attr.cStrokeSoft), dp(1)));
+            chip.setPadding(dp(18), dp(12), dp(18), dp(12));
+            chip.setClickable(true);
+            chip.setFocusable(true);
+            chip.setOnClickListener(v -> sendText(s));
+            LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            cLp.topMargin = dp(8);
+            box.addView(chip, cLp);
+        }
+        return box;
+    }
+
+    private TextView headerAction(String text) {
         TextView t = new TextView(this);
         t.setText(text);
-        t.setTextSize(13);
-        t.setTextColor(color);
-        t.setPadding(0, dp(8), dp(16), dp(6));
+        t.setTextSize(14);
+        t.setGravity(Gravity.CENTER);
+        t.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        t.setTextColor(c(R.attr.cAccentText));
+        t.setMinWidth(dp(40));
+        t.setMinHeight(dp(40));
+        t.setPadding(dp(10), 0, dp(10), 0);
         t.setClickable(true);
         t.setFocusable(true);
         return t;
+    }
+
+    private void showModelMenu(View anchor) {
+        PopupMenu menu = new PopupMenu(this, anchor);
+        menu.getMenu().add(0, 1, 0, R.string.ai_share_model);
+        menu.getMenu().add(0, 2, 1, R.string.ai_save_model);
+        menu.getMenu().add(0, 3, 2, R.string.ai_remove_model);
+        menu.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == 1) shareModel();
+            else if (id == 2) saveLauncher.launch(modelFile().getName());
+            else if (id == 3) removeModel();
+            return true;
+        });
+        menu.show();
     }
 
     private TextView pill(String text, boolean accent) {
@@ -364,6 +454,107 @@ public final class AiActivity extends AppCompatActivity {
         return t;
     }
 
+    private void setSendState(boolean stop) {
+        btnSend.setText(stop ? "■" : "↑");
+        btnSend.setTextSize(stop ? 16 : 24);
+    }
+
+    // ---------- chat bubbles ----------
+
+    private int maxBubbleWidth() {
+        return (int) (getResources().getDisplayMetrics().widthPixels * 0.86f);
+    }
+
+    private void addUserBubble(String text) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextSize(16);
+        t.setTextColor(getColor(R.color.on_accent));
+        t.setTextIsSelectable(true);
+        t.setMaxWidth(maxBubbleWidth());
+        t.setBackground(Ui.round(c(R.attr.cAccent), dp(20), 0, 0));
+        t.setPadding(dp(16), dp(10), dp(16), dp(10));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.END;
+        lp.topMargin = dp(10);
+        chatList.addView(t, lp);
+    }
+
+    private void addAiBubble(String exact) {
+        LinearLayout bubble = new LinearLayout(this);
+        bubble.setOrientation(LinearLayout.VERTICAL);
+        bubble.setBackground(Ui.round(c(R.attr.cSurface), dp(20), 0, 0));
+        bubble.setPadding(dp(16), dp(12), dp(16), dp(10));
+
+        if (exact != null) {
+            TextView chip = new TextView(this);
+            chip.setText(getString(R.string.ai_exact_result) + "  " + exact);
+            chip.setTextSize(15);
+            chip.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+            chip.setTextColor(c(R.attr.cAccentText));
+            chip.setTextIsSelectable(true);
+            chip.setBackground(Ui.round(c(R.attr.cAccentSoft), dp(12), 0, 0));
+            chip.setPadding(dp(12), dp(7), dp(12), dp(7));
+            LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            cLp.bottomMargin = dp(8);
+            bubble.addView(chip, cLp);
+        }
+
+        TextView body = new TextView(this);
+        body.setText(R.string.ai_thinking);
+        body.setTextSize(16);
+        body.setLineSpacing(0, 1.15f);
+        body.setTextColor(c(R.attr.cTextSecondary));
+        body.setTextIsSelectable(true);
+        body.setMaxWidth(maxBubbleWidth() - dp(32));
+        bubble.addView(body);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.START;
+        lp.topMargin = dp(10);
+        chatList.addView(bubble, lp);
+        activeBubble = bubble;
+        activeBody = body;
+    }
+
+    private void addCopyAction(final LinearLayout bubble, final TextView body) {
+        TextView copy = new TextView(this);
+        copy.setText(R.string.ai_copy);
+        copy.setTextSize(12);
+        copy.setTextColor(c(R.attr.cAccentText));
+        copy.setPadding(0, dp(8), dp(12), dp(2));
+        copy.setClickable(true);
+        copy.setFocusable(true);
+        copy.setOnClickListener(v -> {
+            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("ai", body.getText()));
+                Toast.makeText(this, R.string.ai_copied, Toast.LENGTH_SHORT).show();
+            }
+        });
+        bubble.addView(copy);
+    }
+
+    private void scrollToEnd() {
+        scroll.post(() -> scroll.scrollTo(0, chatList.getHeight()));
+    }
+
+    private static String clean(String s) {
+        return s.replace("**", "").replace("__", "").replaceAll("(?m)^#{1,6}\\s*", "").trim();
+    }
+
+    private void newChat() {
+        LocalLlm llm = LocalLlm.get();
+        if (llm.isBusy()) llm.cancel();
+        llm.reset();
+        chatList.removeAllViews();
+        chatList.addView(emptyState);
+        activeBody = null;
+        activeBubble = null;
+        output.setLength(0);
+        setSendState(false);
+    }
+
     // ---------- state ----------
 
     private boolean hasModel() {
@@ -373,14 +564,16 @@ public final class AiActivity extends AppCompatActivity {
 
     private void refreshState() {
         boolean has = hasModel();
-        setupCard.setVisibility(has ? View.GONE : View.VISIBLE);
-        solveCard.setVisibility(has ? View.VISIBLE : View.GONE);
+        setupScroll.setVisibility(has ? View.GONE : View.VISIBLE);
+        chatArea.setVisibility(has ? View.VISIBLE : View.GONE);
+        btnNew.setVisibility(has ? View.VISIBLE : View.GONE);
+        btnMenu.setVisibility(has ? View.VISIBLE : View.GONE);
         if (has) {
             long mb = modelFile().length() / (1024 * 1024);
             tvModelInfo.setText(getString(R.string.ai_model_ready) + " \u00b7 " + mb + " MB");
             loadModelAsync();
         } else {
-            resultCard.setVisibility(View.GONE);
+            tvModelInfo.setText(R.string.ai_subtitle);
         }
     }
 
@@ -393,10 +586,10 @@ public final class AiActivity extends AppCompatActivity {
     private void loadModelAsync() {
         final LocalLlm llm = LocalLlm.get();
         if (llm.isLoaded()) {
-            btnSolve.setAlpha(1f);
+            btnSend.setAlpha(1f);
             return;
         }
-        btnSolve.setAlpha(0.5f);
+        btnSend.setAlpha(0.5f);
         working = true;
         tvModelInfo.setText(R.string.ai_loading);
         final String path = modelFile().getAbsolutePath();
@@ -411,7 +604,7 @@ public final class AiActivity extends AppCompatActivity {
             final String err = error;
             runOnUiThread(() -> {
                 working = false;
-                btnSolve.setAlpha(1f);
+                btnSend.setAlpha(1f);
                 if (err != null) {
                     tvModelInfo.setText(getString(R.string.ai_error) + ": " + err);
                 } else {
@@ -423,6 +616,7 @@ public final class AiActivity extends AppCompatActivity {
     }
 
     private void removeModel() {
+        newChat();
         LocalLlm.get().release();
         modelFile().delete();
         store.setAiModelName("");
@@ -596,14 +790,18 @@ public final class AiActivity extends AppCompatActivity {
 
     // ---------- solving ----------
 
-    private void onSolveClicked() {
+    private void onSendClicked() {
         final LocalLlm llm = LocalLlm.get();
         if (llm.isBusy()) {
             llm.cancel();
             return;
         }
-        if (working || !llm.isLoaded()) return;
-        String problem = etProblem.getText().toString().trim();
+        sendText(etProblem.getText().toString().trim());
+    }
+
+    private void sendText(String problem) {
+        final LocalLlm llm = LocalLlm.get();
+        if (llm.isBusy() || working || !llm.isLoaded()) return;
         if (TextUtils.isEmpty(problem)) {
             Toast.makeText(this, R.string.ai_empty_problem, Toast.LENGTH_SHORT).show();
             return;
@@ -613,53 +811,62 @@ public final class AiActivity extends AppCompatActivity {
         try {
             String cleaned = normalizeDigits(problem).replaceAll("[=?\\s\\u061f]+$", "");
             double v = Expr.eval(cleaned, store.getAngleMode(), () -> 0.0);
-            exact = Fmt.result(v, store.getThousands());
+            if (!Double.isNaN(v) && !Double.isInfinite(v)) exact = Fmt.result(v, store.getThousands());
         } catch (Throwable ignored) {
         }
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are a patient math tutor. ").append(languageInstruction(problem))
-                .append("Explain with short numbered steps in plain text, no LaTeX. Be concise and accurate.\n\n");
-        prompt.append("Problem: ").append(problem).append("\n");
+        prompt.append(problem).append("\n\n").append(languageInstruction(problem));
         if (exact != null) {
-            prompt.append("The exact result is ").append(exact)
-                    .append(". Explain step by step how to reach it. Do not change the result.");
+            prompt.append("Verified exact result: ").append(exact)
+                    .append(". Explain the steps that lead to it and finish with Answer: ").append(exact);
         } else {
             prompt.append("Solve it step by step and finish with a line that starts with Answer:");
         }
 
+        etProblem.setText("");
+        if (emptyState.getParent() != null) chatList.removeView(emptyState);
+        addUserBubble(problem);
+        addAiBubble(exact);
         output.setLength(0);
-        tvOutput.setText(getString(R.string.ai_thinking));
-        resultCard.setVisibility(View.VISIBLE);
-        if (exact != null) {
-            tvExact.setText(getString(R.string.ai_exact_result) + ": " + exact);
-            tvExact.setVisibility(View.VISIBLE);
-        } else {
-            tvExact.setVisibility(View.GONE);
-        }
-        btnSolve.setText(R.string.ai_stop);
-        scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+        setSendState(true);
+        scrollToEnd();
 
-        llm.ask("", prompt.toString(), new LocalLlm.Listener() {
+        final TextView body = activeBody;
+        final LinearLayout bubble = activeBubble;
+        llm.ask(SYSTEM_PROMPT, prompt.toString(), new LocalLlm.Listener() {
             @Override
             public void onToken(String text) {
                 runOnUiThread(() -> {
                     output.append(text);
-                    tvOutput.setText(output.toString().trim());
-                    scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+                    body.setTextColor(c(R.attr.cTextPrimary));
+                    body.setText(clean(output.toString()));
+                    scrollToEnd();
                 });
             }
 
             @Override
             public void onDone() {
-                runOnUiThread(() -> btnSolve.setText(R.string.ai_solve));
+                runOnUiThread(() -> {
+                    setSendState(false);
+                    if (output.length() == 0) {
+                        body.setText(R.string.ai_empty_reply);
+                    } else {
+                        addCopyAction(bubble, body);
+                    }
+                    scrollToEnd();
+                });
             }
 
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    btnSolve.setText(R.string.ai_solve);
-                    if (output.length() == 0) tvOutput.setText(getString(R.string.ai_error) + ": " + message);
+                    setSendState(false);
+                    if (output.length() == 0) {
+                        body.setTextColor(getColor(R.color.bad));
+                        body.setText(getString(R.string.ai_error) + ": " + message);
+                    }
+                    scrollToEnd();
                 });
             }
         });

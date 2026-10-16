@@ -89,4 +89,11 @@
     <string name="ai_save_model">حفظ في التخزين</string>
     <string name="ai_saving">جارٍ حفظ النموذج\u2026</string>
     <string name="ai_saved">تم حفظ النموذج</string>
+    <string name="ai_new_chat">محادثة جديدة</string>
+    <string name="ai_model_menu">خيارات النموذج</string>
+    <string name="ai_welcome_title">ماذا تريد أن تحل اليوم؟</string>
+    <string name="ai_sample_equation">حل المعادلة 2x + 5 = 17</string>
+    <string name="ai_copy">نسخ</string>
+    <string name="ai_copied">تم النسخ</string>
+    <string name="ai_empty_reply">لم يتم توليد إجابة، حاول مرة أخرى</string>
 </resources>
