@@ -17,19 +17,25 @@ public final class BigExpr {
     private final int angleMode;
     private final MathContext mc;
     private final BigDecimal ans;
+    private final int factCap;
     private int pos;
     private boolean lastTermSimple;
 
-    private BigExpr(String src, int angleMode, MathContext mc, BigDecimal ans) {
+    private BigExpr(String src, int angleMode, MathContext mc, BigDecimal ans, int factCap) {
         this.src = src;
         this.angleMode = angleMode;
         this.mc = mc;
         this.ans = ans;
+        this.factCap = factCap;
     }
 
     public static BigDecimal eval(String input, int angleMode, int digits, BigDecimal ans) {
+        return eval(input, angleMode, digits, ans, false);
+    }
+
+    public static BigDecimal eval(String input, int angleMode, int digits, BigDecimal ans, boolean preview) {
         String clean = input.replace('×', '*').replace('÷', '/').replace('−', '-');
-        BigExpr e = new BigExpr(clean, angleMode, new MathContext(digits + 5, RoundingMode.HALF_EVEN), ans == null ? BigDecimal.ZERO : ans);
+        BigExpr e = new BigExpr(clean, angleMode, new MathContext(digits + 5, RoundingMode.HALF_EVEN), ans == null ? BigDecimal.ZERO : ans, preview ? 400 : 3000);
         BigDecimal v = e.expr();
         e.ws();
         if (e.pos != e.src.length()) throw new Expr.EvalException("syntax");
@@ -156,7 +162,7 @@ public final class BigExpr {
         if (v.signum() < 0) throw new Expr.EvalException("math");
         BigInteger n;
         try { n = v.toBigIntegerExact(); } catch (ArithmeticException ex) { throw new Unsupported(); }
-        if (n.compareTo(BigInteger.valueOf(3000)) > 0) throw new Expr.EvalException("overflow");
+        if (n.compareTo(BigInteger.valueOf(factCap)) > 0) throw new Expr.EvalException("overflow");
         BigInteger r = BigInteger.ONE;
         for (int i = 2; i <= n.intValue(); i++) r = r.multiply(BigInteger.valueOf(i));
         return new BigDecimal(r);
@@ -171,7 +177,28 @@ public final class BigExpr {
         return postfix();
     }
 
-    private BigDecimal pi() { return BigDecimalMath.pi(mc); }
+    private static int piPrecision = -1;
+    private static BigDecimal piValue;
+    private static int ePrecision = -1;
+    private static BigDecimal eValue;
+
+    private static synchronized BigDecimal cachedPi(MathContext mc) {
+        if (piValue == null || piPrecision != mc.getPrecision()) {
+            piValue = BigDecimalMath.pi(mc);
+            piPrecision = mc.getPrecision();
+        }
+        return piValue;
+    }
+
+    private static synchronized BigDecimal cachedE(MathContext mc) {
+        if (eValue == null || ePrecision != mc.getPrecision()) {
+            eValue = BigDecimalMath.e(mc);
+            ePrecision = mc.getPrecision();
+        }
+        return eValue;
+    }
+
+    private BigDecimal pi() { return cachedPi(mc); }
 
     private BigDecimal toRad(BigDecimal v) {
         if (angleMode == Expr.DEG) return v.multiply(pi(), mc).divide(BigDecimal.valueOf(180), mc);
@@ -223,7 +250,7 @@ public final class BigExpr {
         if (word("ans")) return ans;
         if (c == 'e' && !(pos + 1 < src.length() && Character.isLetter(src.charAt(pos + 1)))) {
             pos++;
-            return BigDecimalMath.e(mc);
+            return cachedE(mc);
         }
         throw new Unsupported();
     }

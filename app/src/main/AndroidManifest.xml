@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:localeConfig="@xml/locales_config"
         android:hardwareAccelerated="true"
-        android:largeHeap="true"
+       
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
 

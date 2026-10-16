@@ -56,8 +56,8 @@ public final class Expr {
                 case '÷': b.append('/'); break;
                 case '−': b.append('-'); break;
                 case '，': b.append(','); break;
-                case '٫':
-                case '،': b.append(','); break;
+                case '\u066b':
+                case '\u060c': b.append(','); break;
                 default: b.append(c);
             }
         }

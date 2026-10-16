@@ -1,6 +1,9 @@
 package com.calc.app
 
+import android.app.ActivityManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
@@ -35,6 +38,10 @@ class LocalLlm private constructor() {
     private var rawMode = false
     private var phi = false
     private var qwen3 = false
+    private var conf: ModelConf = ModelConf.fallback()
+    private var lowPower = false
+    private val idleHandler = Handler(Looper.getMainLooper())
+    private val idleRunnable = Runnable { releaseIfIdle() }
     private val turns = ArrayList<Array<String>>()
     private val worker = Executors.newSingleThreadExecutor()
     private var usingGpu = false
@@ -55,10 +62,14 @@ class LocalLlm private constructor() {
     val backendName: String
         get() = if (usingGpu) "GPU" else "CPU"
 
+    private fun cpuThreads(): Int {
+        if (lowPower) return 2
+        if (conf.threads > 0) return conf.threads
+        return (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)
+    }
+
     private fun buildEngine(path: String, cache: String, gpu: Boolean): Engine {
-        val backend = if (gpu) Backend.GPU() else Backend.CPU(
-            threadCount = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)
-        )
+        val backend = if (gpu) Backend.GPU() else Backend.CPU(threadCount = cpuThreads())
         val created = Engine(EngineConfig(modelPath = path, backend = backend, cacheDir = cache))
         try {
             runBlocking { created.initialize() }
@@ -73,11 +84,15 @@ class LocalLlm private constructor() {
     }
 
     @Synchronized
-    fun load(modelPath: String, cacheDir: String) {
-        if (engine != null && loadedPath == modelPath) return
+    fun load(modelPath: String, cacheDir: String, modelConf: ModelConf, lowPowerMode: Boolean) {
+        cancelIdleRelease()
+        if (engine != null && loadedPath == modelPath && lowPower == lowPowerMode) return
         release()
-        phi = modelPath.lowercase().contains("phi")
-        qwen3 = modelPath.lowercase().contains("qwen3")
+        conf = modelConf
+        lowPower = lowPowerMode
+        phi = conf.template == "phi"
+        qwen3 = conf.template == "qwen3"
+        rawMode = false
         cachePath = cacheDir
         var created: Engine? = null
         val failedMark = File(cacheDir, "gpu_failed")
@@ -86,7 +101,7 @@ class LocalLlm private constructor() {
             tryingMark.delete()
             failedMark.createNewFile()
         }
-        if (!failedMark.exists()) {
+        if (!failedMark.exists() && !lowPower) {
             try {
                 tryingMark.createNewFile()
                 created = buildEngine(modelPath, cacheDir, true)
@@ -122,21 +137,6 @@ class LocalLlm private constructor() {
         engine = buildEngine(path, cachePath, false)
     }
 
-    fun warmUp(systemPrompt: String) {
-        worker.execute {
-            if (busy || rawMode) return@execute
-            val current = engine ?: return@execute
-            if (systemPrompt != system) {
-                reset()
-                system = systemPrompt
-            }
-            try {
-                ensureConversation(current)
-            } catch (ignored: Throwable) {
-            }
-        }
-    }
-
     fun cancel() {
         cancelled = true
         try {
@@ -156,6 +156,7 @@ class LocalLlm private constructor() {
     }
 
     fun ask(systemPrompt: String, prompt: String, listener: Listener) {
+        cancelIdleRelease()
         if (engine == null) {
             listener.onError("Model is not loaded")
             return
@@ -179,7 +180,7 @@ class LocalLlm private constructor() {
         if (rawMode) askRaw(prompt, listener, canRetry) else askChat(prompt, listener, canRetry)
     }
 
-    private fun sampler() = SamplerConfig(topK = 10, topP = 0.8, temperature = 0.1)
+    private fun sampler() = SamplerConfig(topK = conf.topK, topP = conf.topP, temperature = conf.temperature)
 
     @Synchronized
     private fun ensureConversation(current: Engine): Conversation {
@@ -187,7 +188,7 @@ class LocalLlm private constructor() {
         val config = ConversationConfig(
             systemInstruction = if (system.isBlank()) null else Contents.of(system),
             samplerConfig = sampler(),
-            maxOutputToken = 320,
+            maxOutputToken = conf.maxOutputTokens,
             prefillPrefaceOnInit = true,
             chatTemplate = if (phi) PHI_TEMPLATE else if (qwen3) QWEN3_TEMPLATE else CHAT_TEMPLATE
         )
@@ -341,6 +342,26 @@ class LocalLlm private constructor() {
         listener.onError(message)
     }
 
+    fun scheduleIdleRelease(delayMs: Long) {
+        idleHandler.removeCallbacks(idleRunnable)
+        idleHandler.postDelayed(idleRunnable, delayMs)
+    }
+
+    fun cancelIdleRelease() {
+        idleHandler.removeCallbacks(idleRunnable)
+    }
+
+    fun releaseIfIdle() {
+        if (engine == null) return
+        if (busy) {
+            scheduleIdleRelease(10000)
+            return
+        }
+        worker.execute {
+            if (!busy) release()
+        }
+    }
+
     @Synchronized
     fun release() {
         closeConversation()
@@ -416,32 +437,19 @@ class LocalLlm private constructor() {
         }
 
         @JvmStatic
-        fun preload(ctx: Context) {
-            val app = ctx.applicationContext
-            Thread {
-                try {
-                    val cache = File(cacheDirFor(app))
-                    val off = File(cache, "preload_off")
-                    val trying = File(cache, "preload_trying")
-                    if (trying.exists()) {
-                        trying.delete()
-                        off.createNewFile()
-                    }
-                    if (off.exists()) return@Thread
-                    Thread.sleep(800)
-                    var name = Store(app).aiModelName
-                    if (name.isEmpty()) name = "model.litertlm"
-                    val f = File(File(app.filesDir, "models"), name)
-                    if (!f.exists() || f.length() < 1024 * 1024) return@Thread
-                    val llm = get()
-                    if (llm.isLoaded) return@Thread
-                    trying.createNewFile()
-                    llm.load(f.absolutePath, cache.absolutePath)
-                    trying.delete()
-                    llm.warmUp(AiActivity.SYSTEM_PROMPT)
-                } catch (ignored: Throwable) {
-                }
-            }.start()
+        fun hasEnoughMemory(ctx: Context, requiredMb: Long): Boolean {
+            val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return true
+            val info = ActivityManager.MemoryInfo()
+            am.getMemoryInfo(info)
+            return info.availMem >= requiredMb * 1024L * 1024L
+        }
+
+        @JvmStatic
+        fun totalMemoryMb(ctx: Context): Long {
+            val am = ctx.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return 0L
+            val info = ActivityManager.MemoryInfo()
+            am.getMemoryInfo(info)
+            return info.totalMem / (1024L * 1024L)
         }
 
         @JvmStatic

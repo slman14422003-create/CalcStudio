@@ -29,6 +29,7 @@ public final class Store {
     private static final String K_THEME = "theme";
     private static final String K_AI_URL = "ai_url";
     private static final String K_AI_NAME = "ai_model_name";
+    private static final String K_AI_LOW = "ai_low_power";
     private static final String K_KEEP_ON = "keep_on";
     private static final String K_PROG_BITS = "prog_bits";
     private static final String K_CONV_CAT = "conv_cat";
@@ -73,6 +74,9 @@ public final class Store {
 
     public String getAiModelName() { return prefs.getString(K_AI_NAME, ""); }
     public void setAiModelName(String n) { prefs.edit().putString(K_AI_NAME, n).apply(); }
+
+    public boolean getAiLowPower() { return prefs.getBoolean(K_AI_LOW, false); }
+    public void setAiLowPower(boolean v) { prefs.edit().putBoolean(K_AI_LOW, v).apply(); }
 
     public String getAiUrl() { return prefs.getString(K_AI_URL, ""); }
     public void setAiUrl(String u) { prefs.edit().putString(K_AI_URL, u).apply(); }

@@ -8,6 +8,8 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
@@ -33,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class MainActivity extends AppCompatActivity {
 
@@ -101,6 +105,18 @@ public final class MainActivity extends AppCompatActivity {
     private BigDecimal lastBig = null;
     private BigDecimal pendingBig = null;
     private double pendingAns = 0;
+
+    private static final long PREVIEW_DELAY_MS = 70;
+    private final Handler previewHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService previewExec = Executors.newSingleThreadExecutor();
+    private final Runnable previewRunnable = this::livePreviewNow;
+    private volatile int previewSeq = 0;
+
+    private static final class Computed {
+        String text;
+        BigDecimal big;
+        double val;
+    }
 
     private final Map<String, List<Button>> opButtons = new HashMap<>();
     private final Map<String, Button> sciKeys = new HashMap<>();
@@ -181,9 +197,17 @@ public final class MainActivity extends AppCompatActivity {
         else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         showExpr(currentExpr);
         if (!lastWasResult) livePreview();
-        doConvert();
-        updateProgDisplay();
+        if (currentTab == TAB_CONV) doConvert();
+        if (currentTab == TAB_PROG) updateProgDisplay();
         refreshIndicators();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        previewHandler.removeCallbacks(previewRunnable);
+        previewSeq++;
+        previewExec.shutdownNow();
     }
 
     @Override
@@ -896,6 +920,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void clearAll() {
+        cancelPreview();
         currentExpr = "";
         lastWasResult = false;
         showExpr("");
@@ -931,36 +956,79 @@ public final class MainActivity extends AppCompatActivity {
         return s.substring(0, end);
     }
 
-    private String compute(String expr) {
-        pendingBig = null;
-        if (store.getHighPrecision()) {
+    private static Computed evaluate(String expr, int angle, boolean hp, int digits, boolean thousands,
+                                     final double ansSnap, BigDecimal bigSnap, boolean preview) {
+        Computed r = new Computed();
+        if (hp) {
             try {
-                BigDecimal ans = lastBig != null ? lastBig : BigDecimal.valueOf(lastAnswer);
-                BigDecimal b = BigExpr.eval(expr, angleMode, store.getHpDigits(), ans);
-                pendingBig = b;
-                pendingAns = b.doubleValue();
-                return Fmt.big(b, store.getThousands());
+                BigDecimal ans = bigSnap != null ? bigSnap : BigDecimal.valueOf(ansSnap);
+                BigDecimal b = BigExpr.eval(expr, angle, digits, ans, preview);
+                r.big = b;
+                r.val = b.doubleValue();
+                r.text = Fmt.big(b, thousands);
+                return r;
             } catch (BigExpr.Unsupported | ArithmeticException | NumberFormatException ignored) {
-                pendingBig = null;
             }
         }
-        double v = Expr.eval(expr, angleMode, () -> lastAnswer);
-        pendingAns = v;
-        return Fmt.result(v, store.getThousands());
+        double v = Expr.eval(expr, angle, () -> ansSnap);
+        r.val = v;
+        r.text = Fmt.result(v, thousands);
+        return r;
+    }
+
+    private String compute(String expr) {
+        Computed r = evaluate(expr, angleMode, store.getHighPrecision(), store.getHpDigits(),
+                store.getThousands(), lastAnswer, lastBig, false);
+        pendingBig = r.big;
+        pendingAns = r.val;
+        return r.text;
+    }
+
+    private void cancelPreview() {
+        previewHandler.removeCallbacks(previewRunnable);
+        previewSeq++;
     }
 
     private void livePreview() {
-        if (currentExpr.trim().isEmpty()) { setResult("0", false); return; }
-        if (!store.getAutoPreview()) return;
-        String e = previewForm(currentExpr);
-        if (e.isEmpty()) return;
-        try {
-            setResult(compute(autoClose(e)), false);
-        } catch (Exception ignored) {
+        previewHandler.removeCallbacks(previewRunnable);
+        if (currentExpr.trim().isEmpty()) {
+            previewSeq++;
+            setResult("0", false);
+            return;
         }
+        if (!store.getAutoPreview()) return;
+        previewHandler.postDelayed(previewRunnable, PREVIEW_DELAY_MS);
+    }
+
+    private void livePreviewNow() {
+        if (!store.getAutoPreview()) return;
+        String src = previewForm(currentExpr);
+        if (src.isEmpty()) return;
+        final String expr = autoClose(src);
+        final int seq = ++previewSeq;
+        final int angle = angleMode;
+        final boolean hp = store.getHighPrecision();
+        final int digits = store.getHpDigits();
+        final boolean thousands = store.getThousands();
+        final double ansSnap = lastAnswer;
+        final BigDecimal bigSnap = lastBig;
+        previewExec.execute(() -> {
+            if (seq != previewSeq) return;
+            String text;
+            try {
+                text = evaluate(expr, angle, hp, digits, thousands, ansSnap, bigSnap, true).text;
+            } catch (Exception ignored) {
+                return;
+            }
+            final String shown = text;
+            runOnUiThread(() -> {
+                if (seq == previewSeq) setResult(shown, false);
+            });
+        });
     }
 
     private void onEquals() {
+        cancelPreview();
         if (currentExpr.trim().isEmpty()) return;
         String expr = autoClose(currentExpr.trim());
         try {
@@ -1005,6 +1073,7 @@ public final class MainActivity extends AppCompatActivity {
         tvSubtitle.setText(tabLabels[tab]);
         refreshNav();
         if (tab == TAB_PROG) updateProgDisplay();
+        if (tab == TAB_CONV) doConvert();
         refreshIndicators();
     }
 

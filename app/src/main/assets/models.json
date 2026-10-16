@@ -1,0 +1,73 @@
+{
+  "defaults": {
+    "template": "chatml",
+    "maxOutputTokens": 320,
+    "topK": 10,
+    "topP": 0.8,
+    "temperature": 0.1,
+    "threads": 0,
+    "tools": false,
+    "maxToolCalls": 3,
+    "idleReleaseSec": 60,
+    "role": "You are a math tutor inside a calculator app.",
+    "do": [
+      "Reply in the language of the user message.",
+      "Use at most 5 short numbered steps in plain text.",
+      "A verified result, if given, is correct and is your final answer.",
+      "For an expression with variables and no equals sign, only simplify it.",
+      "End with one line: Answer: <result>. Translate the word Answer into the language of the user message."
+    ],
+    "dont": [
+      "Do not use LaTeX or markdown.",
+      "Do not discuss topics outside math.",
+      "Do not repeat the question."
+    ],
+    "toolProtocol": "When you need the exact value of a calculation, write [[calc: expression]] and stop writing. The app replies with the result and you continue. Use + - * / ^ sqrt() sin() cos() tan() log() ln() and parentheses. Example: [[calc: (125+75)*3-40]]. Never guess a number you can compute with the tool."
+  },
+  "models": [
+    {
+      "id": "qwen25-05b",
+      "label": "Qwen2.5 0.5B",
+      "tier": "small",
+      "url": "https://huggingface.co/leuconoe/litert-lm-unity-quantized/resolve/main/qwen2.5-0.5b-instruct/Qwen2.5-0.5B-Instruct_wi4b64_ekv1280.litertlm",
+      "sizeMb": 265,
+      "ramMb": 700,
+      "template": "chatml",
+      "maxOutputTokens": 200,
+      "threads": 2,
+      "tools": false,
+      "idleReleaseSec": 30,
+      "do": [
+        "Keep every step under 15 words."
+      ]
+    },
+    {
+      "id": "qwen25-15b",
+      "label": "Qwen2.5 1.5B",
+      "tier": "balanced",
+      "url": "https://huggingface.co/leuconoe/litert-lm-unity-quantized/resolve/main/qwen2.5-1.5b-instruct/Qwen2.5-1.5B-Instruct_wi4b64_ekv4096.litertlm",
+      "sizeMb": 790,
+      "ramMb": 1700,
+      "template": "chatml",
+      "maxOutputTokens": 300,
+      "threads": 3,
+      "tools": true,
+      "maxToolCalls": 3,
+      "idleReleaseSec": 60
+    },
+    {
+      "id": "qwen3-17b",
+      "label": "Qwen3 1.7B",
+      "tier": "big",
+      "url": "https://huggingface.co/litert-community/Qwen3-1.7B/resolve/main/Qwen3_1.7B.litertlm",
+      "sizeMb": 2000,
+      "ramMb": 3000,
+      "template": "qwen3",
+      "maxOutputTokens": 400,
+      "threads": 4,
+      "tools": true,
+      "maxToolCalls": 4,
+      "idleReleaseSec": 90
+    }
+  ]
+}

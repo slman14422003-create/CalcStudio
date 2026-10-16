@@ -14,9 +14,9 @@ public final class Fmt {
     public static final int MODE_SCI = 2;
     public static final int MODE_ENG = 3;
 
-    private static int digits = 12;
-    private static int mode = MODE_AUTO;
-    private static int decimals = 6;
+    private static volatile int digits = 12;
+    private static volatile int mode = MODE_AUTO;
+    private static volatile int decimals = 6;
 
     private Fmt() {}
 

@@ -64,7 +64,7 @@
     <string name="ai_title">الذكاء الاصطناعي المحلي</string>
     <string name="ai_subtitle">حلّال مسائل رياضية يعمل بالكامل على جهازك</string>
     <string name="ai_setup_title">إعداد النموذج</string>
-    <string name="ai_setup_desc">اختر الحجم واضغط تنزيل (مرة واحدة فقط، وبعدها يعمل كل شيء بدون إنترنت)، أو استورد ملف ‎.litertlm‎ موجود عندك. الخياران من نماذج Qwen2.5-Instruct المضغوطة (int4) برخصة Apache-2.0.</string>
+    <string name="ai_setup_desc">اختر نموذجاً واضغط تنزيل (مرة واحدة ثم يعمل كل شيء بدون إنترنت)، أو استورد ملف .litertlm لديك. النماذج الأكبر أذكى لكنها تستهلك ذاكرة أكثر.</string>
     <string name="ai_import">استيراد ملف</string>
     <string name="ai_download">تنزيل</string>
     <string name="ai_url_hint">رابط مباشر لملف ‎.litertlm‎</string>
@@ -83,8 +83,6 @@
     <string name="ai_invalid_file">هذا الملف أصغر من أن يكون نموذجاً</string>
     <string name="ai_removed">تم حذف النموذج</string>
     <string name="ai_empty_problem">اكتب مسألة أولاً</string>
-    <string name="ai_preset_small">صغير \u00b7 265 ميجا</string>
-    <string name="ai_preset_balanced">متوازن \u00b7 790 ميجا</string>
     <string name="ai_share_model">مشاركة النموذج</string>
     <string name="ai_save_model">حفظ في التخزين</string>
     <string name="ai_saving">جارٍ حفظ النموذج\u2026</string>
@@ -96,6 +94,21 @@
     <string name="ai_copy">نسخ</string>
     <string name="ai_copied">تم النسخ</string>
     <string name="ai_empty_reply">لم يتم توليد إجابة، حاول مرة أخرى</string>
-    <string name="ai_preset_big">علمي \u00b7 2 جيجا (Qwen3 1.7B)</string>
     <string name="ai_no_space">لا توجد مساحة تخزين كافية لهذا النموذج</string>
+    <string name="ai_low_memory">لا توجد ذاكرة حرة كافية لهذا النموذج. قد يكون التحميل بطيئاً أو يغلق تطبيقات أخرى. هل تريد المتابعة؟</string>
+    <string name="ai_low_power">وضع توفير الطاقة</string>
+    <string name="ai_power_changed">تم التطبيق. سيُعاد تحميل النموذج عند الاستخدام التالي.</string>
+    <string name="ai_explain_steps">اشرح الخطوات</string>
+    <string name="ai_recommended">موصى به</string>
+    <string name="ai_model_row_info">%1$d ميجا \u00b7 حوالي %2$s جيجا رام</string>
+    <string name="ai_tier_small">سريع وخفيف، للحسابات البسيطة</string>
+    <string name="ai_tier_balanced">توازن بين السرعة والجودة</string>
+    <string name="ai_tier_big">أفضل جودة، يحتاج رام أكبر</string>
+    <string name="ai_tier_custom">نموذج مخصص</string>
+    <string name="ai_heavy_warning">قد يكون هذا النموذج ثقيلاً على جهازك</string>
+    <string name="ai_prompt_question">أجب بالعربية فقط ولا تكتب أي كلمة إنجليزية.\nالسؤال: %1$s</string>
+    <string name="ai_prompt_verified">\nالنتيجة المؤكدة: %1$s</string>
+    <string name="ai_prompt_tail">\nاشرح بخطوات قصيرة بالعربية، واختم بسطر: الجواب: %1$s</string>
+    <string name="ai_tool_result">نتيجة الأداة: %1$s = %2$s. أكمل الحل بهذه القيمة ولا تعد حسابها.</string>
+    <string name="ai_tool_failed">تعذر على الأداة حساب %1$s. أكمل بدونها.</string>
 </resources>

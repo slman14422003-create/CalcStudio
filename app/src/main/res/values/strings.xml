@@ -89,7 +89,7 @@
     <string name="ai_title">Local AI</string>
     <string name="ai_subtitle">Math solver that runs fully on this device</string>
     <string name="ai_setup_title">Set up the model</string>
-    <string name="ai_setup_desc">Pick a size and tap Download (once, then everything runs offline), or import a .litertlm file you already have. Both options are Qwen2.5-Instruct int4 builds (Apache-2.0).</string>
+    <string name="ai_setup_desc">Pick a model and tap Download (once, then everything runs offline), or import a .litertlm file you already have. Larger models are smarter but use more memory.</string>
     <string name="ai_import">Import file</string>
     <string name="ai_download">Download</string>
     <string name="ai_url_hint">Direct link to a .litertlm file</string>
@@ -108,8 +108,6 @@
     <string name="ai_invalid_file">This file is too small to be a model</string>
     <string name="ai_removed">Model removed</string>
     <string name="ai_empty_problem">Enter a problem first</string>
-    <string name="ai_preset_small">Small \u00b7 265 MB</string>
-    <string name="ai_preset_balanced">Balanced \u00b7 790 MB</string>
     <string name="ai_share_model">Share model</string>
     <string name="ai_save_model">Save to storage</string>
     <string name="ai_saving">Saving model\u2026</string>
@@ -121,6 +119,21 @@
     <string name="ai_copy">Copy</string>
     <string name="ai_copied">Copied</string>
     <string name="ai_empty_reply">No answer was generated, try again</string>
-    <string name="ai_preset_big">Scientific \u00b7 2 GB (Qwen3 1.7B)</string>
     <string name="ai_no_space">Not enough free storage for this model</string>
+    <string name="ai_low_memory">Not enough free memory for this model. Loading it may be slow or may close other apps. Continue anyway?</string>
+    <string name="ai_low_power">Power saving mode</string>
+    <string name="ai_power_changed">Applied. The model reloads on next use.</string>
+    <string name="ai_explain_steps">Explain steps</string>
+    <string name="ai_recommended">Recommended</string>
+    <string name="ai_model_row_info">%1$d MB \u00b7 about %2$s GB RAM</string>
+    <string name="ai_tier_small">Fast and light, simple math</string>
+    <string name="ai_tier_balanced">Balanced speed and quality</string>
+    <string name="ai_tier_big">Best quality, needs more RAM</string>
+    <string name="ai_tier_custom">Custom model</string>
+    <string name="ai_heavy_warning">This model may be heavy for your device</string>
+    <string name="ai_prompt_question">%1$s\nReply in the same language as the question.</string>
+    <string name="ai_prompt_verified">\nVerified result: %1$s.</string>
+    <string name="ai_prompt_tail"></string>
+    <string name="ai_tool_result">Tool result: %1$s = %2$s. Continue the solution using this value and do not recompute it.</string>
+    <string name="ai_tool_failed">The tool could not evaluate %1$s. Continue without it.</string>
 </resources>
