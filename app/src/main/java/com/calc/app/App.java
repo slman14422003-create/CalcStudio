@@ -8,6 +8,6 @@ public final class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        AppCompatDelegate.setDefaultNightMode(Store.nightModeFor(new Store(this).getTheme()));
     }
 }

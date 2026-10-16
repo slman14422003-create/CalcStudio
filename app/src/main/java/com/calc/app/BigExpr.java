@@ -18,6 +18,7 @@ public final class BigExpr {
     private final MathContext mc;
     private final BigDecimal ans;
     private int pos;
+    private boolean lastTermSimple;
 
     private BigExpr(String src, int angleMode, MathContext mc, BigDecimal ans) {
         this.src = src;
@@ -59,34 +60,52 @@ public final class BigExpr {
     private BigDecimal expr() {
         BigDecimal v = term();
         while (true) {
-            if (match('+')) v = v.add(term(), mc);
-            else if (match('-')) v = v.subtract(term(), mc);
-            else break;
-        }
-        return v;
-    }
-
-    private BigDecimal term() {
-        BigDecimal v = power();
-        while (true) {
-            ws();
-            if (match('*')) v = v.multiply(power(), mc);
-            else if (match('/')) {
-                BigDecimal d = power();
-                if (d.signum() == 0) throw new Expr.EvalException("div0");
-                v = v.divide(d, mc);
-            } else if (pos < src.length() && (src.charAt(pos) == '(' || Character.isDigit(src.charAt(pos)) || src.charAt(pos) == '.' || Character.isLetter(src.charAt(pos)) || src.charAt(pos) == 'π' || src.charAt(pos) == '√' || src.charAt(pos) == '∛')) {
-                if (src.regionMatches(true, pos, "mod", 0, 3)) throw new Unsupported();
-                v = v.multiply(power(), mc);
+            if (match('+')) {
+                int from = pos;
+                BigDecimal t = term();
+                v = v.add((lastTermSimple && endsWithPercent(from)) ? v.multiply(t, mc) : t, mc);
+            } else if (match('-')) {
+                int from = pos;
+                BigDecimal t = term();
+                v = v.subtract((lastTermSimple && endsWithPercent(from)) ? v.multiply(t, mc) : t, mc);
             } else break;
         }
         return v;
     }
 
+    private boolean endsWithPercent(int from) {
+        int k = pos - 1;
+        while (k >= from && Character.isWhitespace(src.charAt(k))) k--;
+        return k >= from && src.charAt(k) == '%';
+    }
+
+    private BigDecimal term() {
+        boolean hadOp = false;
+        BigDecimal v = unary();
+        while (true) {
+            ws();
+            if (match('*')) {
+                hadOp = true;
+                v = v.multiply(unary(), mc);
+            } else if (match('/')) {
+                hadOp = true;
+                BigDecimal d = unary();
+                if (d.signum() == 0) throw new Expr.EvalException("div0");
+                v = v.divide(d, mc);
+            } else if (pos < src.length() && (src.charAt(pos) == '(' || Character.isDigit(src.charAt(pos)) || src.charAt(pos) == '.' || Character.isLetter(src.charAt(pos)) || src.charAt(pos) == '\u03c0' || src.charAt(pos) == '\u221a' || src.charAt(pos) == '\u221b')) {
+                if (src.regionMatches(true, pos, "mod", 0, 3)) throw new Unsupported();
+                hadOp = true;
+                v = v.multiply(unary(), mc);
+            } else break;
+        }
+        lastTermSimple = !hadOp;
+        return v;
+    }
+
     private BigDecimal power() {
-        BigDecimal b = unary();
+        BigDecimal b = postfix();
         if (match('^')) {
-            BigDecimal x = power();
+            BigDecimal x = unary();
             return pow(b, x);
         }
         return b;
@@ -113,7 +132,7 @@ public final class BigExpr {
     private BigDecimal unary() {
         if (match('-')) return unary().negate();
         if (match('+')) return unary();
-        return postfix();
+        return power();
     }
 
     private BigDecimal postfix() {
@@ -187,9 +206,14 @@ public final class BigExpr {
         if (word("ln")) return ln(arg());
         if (word("log2")) return BigDecimalMath.log2(positive(arg()), mc);
         if (word("log")) return BigDecimalMath.log10(positive(arg()), mc);
-        if (word("sin")) return BigDecimalMath.sin(toRad(arg()), mc);
-        if (word("cos")) return BigDecimalMath.cos(toRad(arg()), mc);
-        if (word("tan")) return BigDecimalMath.tan(toRad(arg()), mc);
+        if (word("sin")) return snapZero(BigDecimalMath.sin(toRad(arg()), mc));
+        if (word("cos")) return snapZero(BigDecimalMath.cos(toRad(arg()), mc));
+        if (word("tan")) {
+            BigDecimal x = toRad(arg());
+            BigDecimal cs = snapZero(BigDecimalMath.cos(x, mc));
+            if (cs.signum() == 0) throw new Expr.EvalException("math");
+            return snapZero(snapZero(BigDecimalMath.sin(x, mc)).divide(cs, mc));
+        }
         if (word("asin")) return fromRad(BigDecimalMath.asin(arg(), mc));
         if (word("acos")) return fromRad(BigDecimalMath.acos(arg(), mc));
         if (word("atan")) return fromRad(BigDecimalMath.atan(arg(), mc));
@@ -202,6 +226,12 @@ public final class BigExpr {
             return BigDecimalMath.e(mc);
         }
         throw new Unsupported();
+    }
+
+    private BigDecimal snapZero(BigDecimal v) {
+        int digits = mc.getPrecision() - 5;
+        if (v.signum() != 0 && v.abs().compareTo(BigDecimal.ONE.movePointLeft(digits + 2)) < 0) return BigDecimal.ZERO;
+        return v;
     }
 
     private BigDecimal positive(BigDecimal v) {
@@ -232,7 +262,7 @@ public final class BigExpr {
             pos++;
             while (pos < src.length() && Character.isDigit(src.charAt(pos))) pos++;
         }
-        if (pos < src.length() && (src.charAt(pos) == 'E')) {
+        if (pos < src.length() && (src.charAt(pos) == 'E' || src.charAt(pos) == 'e')) {
             int save = pos;
             pos++;
             if (pos < src.length() && (src.charAt(pos) == '+' || src.charAt(pos) == '-')) pos++;

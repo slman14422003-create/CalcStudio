@@ -27,6 +27,7 @@ public final class Expr {
     private final int angleMode;
     private final AnsProvider ansProvider;
     private int pos;
+    private boolean lastTermSimple;
 
     private Expr(String src, int angleMode, AnsProvider ansProvider) {
         this.src = src;
@@ -42,6 +43,7 @@ public final class Expr {
         e.skipSpaces();
         if (e.pos != e.src.length()) throw new EvalException("syntax");
         if (Double.isNaN(v)) throw new EvalException("math");
+        if (Double.isInfinite(v)) throw new EvalException("overflow");
         return v;
     }
 
@@ -95,31 +97,49 @@ public final class Expr {
         double v = parseTerm();
         while (true) {
             skipSpaces();
-            if (match('+')) v += parseTerm();
-            else if (match('-')) v -= parseTerm();
-            else break;
+            if (match('+')) {
+                int from = pos;
+                double t = parseTerm();
+                v += (lastTermSimple && endsWithPercent(from)) ? v * t : t;
+            } else if (match('-')) {
+                int from = pos;
+                double t = parseTerm();
+                v -= (lastTermSimple && endsWithPercent(from)) ? v * t : t;
+            } else break;
         }
         return v;
     }
 
+    private boolean endsWithPercent(int from) {
+        int k = pos - 1;
+        while (k >= from && Character.isWhitespace(src.charAt(k))) k--;
+        return k >= from && src.charAt(k) == '%';
+    }
+
     private double parseTerm() {
-        double v = parsePower();
+        boolean hadOp = false;
+        double v = parseUnary();
         while (true) {
             skipSpaces();
-            if (match('*')) v *= parsePower();
-            else if (matchWord("mod")) {
-                double d = parsePower();
+            if (match('*')) {
+                hadOp = true;
+                v *= parseUnary();
+            } else if (matchWord("mod")) {
+                hadOp = true;
+                double d = parseUnary();
                 if (d == 0) throw new EvalException("div0");
                 v = v - d * Math.floor(v / d);
-            }
-            else if (match('/')) {
-                double d = parsePower();
+            } else if (match('/')) {
+                hadOp = true;
+                double d = parseUnary();
                 if (d == 0) throw new EvalException("div0");
                 v /= d;
             } else if (startsImplicitFactor()) {
-                v *= parsePower();
+                hadOp = true;
+                v *= parseUnary();
             } else break;
         }
+        lastTermSimple = !hadOp;
         return v;
     }
 
@@ -134,10 +154,10 @@ public final class Expr {
     }
 
     private double parsePower() {
-        double base = parseUnary();
+        double base = parsePostfix();
         skipSpaces();
         if (match('^')) {
-            double exp = parsePower();
+            double exp = parseUnary();
             return Math.pow(base, exp);
         }
         return base;
@@ -147,7 +167,7 @@ public final class Expr {
         skipSpaces();
         if (match('-')) return -parseUnary();
         if (match('+')) return parseUnary();
-        return parsePostfix();
+        return parsePower();
     }
 
     private double parsePostfix() {
@@ -194,12 +214,12 @@ public final class Expr {
         if (matchWord("sinh")) return Math.sinh(argParen());
         if (matchWord("cosh")) return Math.cosh(argParen());
         if (matchWord("tanh")) return Math.tanh(argParen());
-        if (matchWord("sin")) return Math.sin(toRad(argParen()));
-        if (matchWord("cos")) return Math.cos(toRad(argParen()));
-        if (matchWord("tan")) return Math.tan(toRad(argParen()));
-        if (matchWord("log2")) return Math.log(argParen()) / Math.log(2);
+        if (matchWord("sin")) return trig(0, argParen());
+        if (matchWord("cos")) return trig(1, argParen());
+        if (matchWord("tan")) return trig(2, argParen());
+        if (matchWord("log2")) return ln(argParen()) / Math.log(2);
         if (matchWord("log")) return logFn();
-        if (matchWord("ln")) return Math.log(argParen());
+        if (matchWord("ln")) return ln(argParen());
         if (matchWord("sqrt")) return rootArg(2);
         if (matchWord("cbrt")) return rootArg(3);
         if (matchWord("root")) return rootFn();
@@ -211,13 +231,13 @@ public final class Expr {
         if (matchWord("npr")) return nPrFn();
         if (matchWord("acot")) return fromRad(Math.atan(1.0 / argParen()));
         if (matchWord("coth")) return 1.0 / Math.tanh(argParen());
-        if (matchWord("cot")) return 1.0 / Math.tan(toRad(argParen()));
-        if (matchWord("sec")) return 1.0 / Math.cos(toRad(argParen()));
-        if (matchWord("csc")) return 1.0 / Math.sin(toRad(argParen()));
+        if (matchWord("cot")) return trig(3, argParen());
+        if (matchWord("sec")) return trig(4, argParen());
+        if (matchWord("csc")) return trig(5, argParen());
         if (matchWord("deg")) return Math.toDegrees(argParen());
         if (matchWord("rad")) return Math.toRadians(argParen());
-        if (matchWord("logb")) { double[] a = args(2, 2); return Math.log(a[1]) / Math.log(a[0]); }
-        if (matchWord("lg")) return Math.log10(argParen());
+        if (matchWord("logb")) { double[] a = args(2, 2); double d = ln(a[0]); if (d == 0) throw new EvalException("math"); return ln(a[1]) / d; }
+        if (matchWord("lg")) return log10(argParen());
         if (matchWord("pow")) { double[] a = args(2, 2); return Math.pow(a[0], a[1]); }
         if (matchWord("mod")) { double[] a = args(2, 2); if (a[1] == 0) throw new EvalException("div0"); return a[0] - a[1] * Math.floor(a[0] / a[1]); }
         if (matchWord("hypot")) { double[] a = args(2, 2); return Math.hypot(a[0], a[1]); }
@@ -258,6 +278,45 @@ public final class Expr {
             }
         }
         throw new EvalException("syntax");
+    }
+
+    private double trig(int kind, double x) {
+        double r = toRad(x);
+        double s = snap(Math.sin(r));
+        double c = snap(Math.cos(r));
+        switch (kind) {
+            case 0: return s;
+            case 1: return c;
+            case 2:
+                if (c == 0) throw new EvalException("math");
+                return snap(s / c);
+            case 3:
+                if (s == 0) throw new EvalException("math");
+                return snap(c / s);
+            case 4:
+                if (c == 0) throw new EvalException("math");
+                return 1.0 / c;
+            default:
+                if (s == 0) throw new EvalException("math");
+                return 1.0 / s;
+        }
+    }
+
+    private static double snap(double v) {
+        if (Math.abs(v) < 1e-15) return 0;
+        double r = Math.rint(v);
+        if (Math.abs(v - r) < 1e-14) return r;
+        return v;
+    }
+
+    private static double ln(double x) {
+        if (!(x > 0)) throw new EvalException("math");
+        return Math.log(x);
+    }
+
+    private static double log10(double x) {
+        if (!(x > 0)) throw new EvalException("math");
+        return Math.log10(x);
     }
 
     private double rootArg(int n) {
@@ -343,8 +402,10 @@ public final class Expr {
 
     private double logFn() {
         double[] a = args(1, 2);
-        if (a.length == 1) return Math.log10(a[0]);
-        return Math.log(a[0]) / Math.log(a[1]);
+        if (a.length == 1) return log10(a[0]);
+        double d = ln(a[1]);
+        if (d == 0) throw new EvalException("math");
+        return ln(a[0]) / d;
     }
 
     private static double gcdFn(double[] a) {

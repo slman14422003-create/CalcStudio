@@ -72,6 +72,36 @@ public final class Ui {
         TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(t, minSp, maxSp, 1, TypedValue.COMPLEX_UNIT_SP);
     }
 
+    public static void autoFitLines(TextView t, int minSp, int maxSp, int lines) {
+        t.setSingleLine(false);
+        t.setMaxLines(lines);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(t, minSp, maxSp, 1, TypedValue.COMPLEX_UNIT_SP);
+    }
+
+    public static ImageView icon(Context c, int res, int sizeDp, int tint) {
+        ImageView v = new ImageView(c);
+        v.setImageResource(res);
+        v.setImageTintList(android.content.res.ColorStateList.valueOf(tint));
+        v.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, sizeDp), dp(c, sizeDp)));
+        v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return v;
+    }
+
+    public static void styleKey(Button b, int styleResId, boolean compact) {
+        if (styleResId == R.style.KeyFunction) {
+            autoFit(b, compact ? 10 : 12, compact ? 16 : 20);
+        } else if (styleResId == R.style.KeyDigit) {
+            b.setTextSize(compact ? 24 : 30);
+        } else if (styleResId == R.style.KeyOperator) {
+            b.setTextSize(compact ? 26 : 32);
+        } else if (styleResId == R.style.KeyEquals) {
+            b.setTextSize(compact ? 26 : 32);
+        } else if (styleResId == R.style.KeyDanger) {
+            b.setTextSize(compact ? 18 : 22);
+        }
+    }
+
     public static GradientDrawable round(int color, int radius, int stroke, int strokeW) {
         GradientDrawable g = new GradientDrawable();
         g.setColor(color);
@@ -124,7 +154,7 @@ public final class Ui {
         t.setClickable(true);
         t.setFocusable(true);
         setChipState(t, false);
-        t.setPadding(dp(c, 16), 0, dp(c, 16), 0);
+        t.setPadding(dp(c, 18), 0, dp(c, 18), 0);
         return t;
     }
 

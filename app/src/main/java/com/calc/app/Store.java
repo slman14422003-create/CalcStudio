@@ -26,6 +26,11 @@ public final class Store {
     private static final String K_HP = "high_precision";
     private static final String K_HP_DIGITS = "hp_digits";
     private static final String K_AUTO_PREVIEW = "auto_preview";
+    private static final String K_THEME = "theme";
+    private static final String K_KEEP_ON = "keep_on";
+    private static final String K_PROG_BITS = "prog_bits";
+    private static final String K_CONV_CAT = "conv_cat";
+    private static final String K_CONV_UNIT = "conv_unit_";
     private static final int MAX_HISTORY = 200;
 
     private final SharedPreferences prefs;
@@ -64,6 +69,31 @@ public final class Store {
     public boolean getAutoPreview() { return prefs.getBoolean(K_AUTO_PREVIEW, true); }
     public void setAutoPreview(boolean b) { prefs.edit().putBoolean(K_AUTO_PREVIEW, b).apply(); }
 
+    public int getTheme() { return prefs.getInt(K_THEME, 0); }
+    public void setTheme(int t) { prefs.edit().putInt(K_THEME, t).apply(); }
+
+    public static int nightModeFor(int theme) {
+        if (theme == 1) return androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
+        if (theme == 2) return androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES;
+        return androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+    }
+
+    public boolean getKeepOn() { return prefs.getBoolean(K_KEEP_ON, false); }
+    public void setKeepOn(boolean b) { prefs.edit().putBoolean(K_KEEP_ON, b).apply(); }
+
+    public int getProgBits() { return prefs.getInt(K_PROG_BITS, 64); }
+    public void setProgBits(int b) { prefs.edit().putInt(K_PROG_BITS, b).apply(); }
+
+    public int getConvCategory() { return prefs.getInt(K_CONV_CAT, 0); }
+    public void setConvCategory(int c) { prefs.edit().putInt(K_CONV_CAT, c).apply(); }
+
+    public String getConvUnit(String category, boolean from) {
+        return prefs.getString(K_CONV_UNIT + category + (from ? "_from" : "_to"), null);
+    }
+    public void setConvUnit(String category, boolean from, String unit) {
+        prefs.edit().putString(K_CONV_UNIT + category + (from ? "_from" : "_to"), unit).apply();
+    }
+
     public int getLastTab() { return prefs.getInt(K_LAST_TAB, 1); }
     public void setLastTab(int t) { prefs.edit().putInt(K_LAST_TAB, t).apply(); }
 
@@ -71,9 +101,29 @@ public final class Store {
     public void setLastBase(int b) { prefs.edit().putInt(K_LAST_BASE, b).apply(); }
 
     public void addHistory(String expression, String result) {
+        addHistory(expression, result, HistoryItem.KIND_CALC);
+    }
+
+    public void addHistory(String expression, String result, int kind) {
         List<HistoryItem> items = getHistory();
-        items.add(0, new HistoryItem(expression, result, System.currentTimeMillis()));
+        if (!items.isEmpty()) {
+            HistoryItem top = items.get(0);
+            if (top.kind == kind && top.expression.equals(expression) && top.result.equals(result)) return;
+        }
+        items.add(0, new HistoryItem(expression, result, System.currentTimeMillis(), kind));
         while (items.size() > MAX_HISTORY) items.remove(items.size() - 1);
+        saveHistory(items);
+    }
+
+    public void removeHistory(HistoryItem target) {
+        List<HistoryItem> items = getHistory();
+        for (int i = 0; i < items.size(); i++) {
+            HistoryItem it = items.get(i);
+            if (it.time == target.time && it.expression.equals(target.expression) && it.result.equals(target.result)) {
+                items.remove(i);
+                break;
+            }
+        }
         saveHistory(items);
     }
 
@@ -88,7 +138,7 @@ public final class Store {
             JSONArray arr = new JSONArray(raw);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
-                out.add(new HistoryItem(o.getString("e"), o.getString("r"), o.getLong("t")));
+                out.add(new HistoryItem(o.getString("e"), o.getString("r"), o.getLong("t"), o.optInt("k", HistoryItem.KIND_CALC)));
             }
         } catch (JSONException ignored) {}
         return out;
@@ -102,6 +152,7 @@ public final class Store {
                 o.put("e", it.expression);
                 o.put("r", it.result);
                 o.put("t", it.time);
+                o.put("k", it.kind);
                 arr.put(o);
             } catch (JSONException ignored) {}
         }

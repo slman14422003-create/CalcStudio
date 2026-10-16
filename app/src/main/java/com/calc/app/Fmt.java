@@ -107,6 +107,45 @@ public final class Fmt {
         return (neg ? "-" : "") + out + fracPart;
     }
 
+    public static String prettyExpr(String s, boolean thousands) {
+        StringBuilder out = new StringBuilder();
+        int n = s.length();
+        int i = 0;
+        while (i < n) {
+            char ch = s.charAt(i);
+            if (Character.isDigit(ch)) {
+                int j = i;
+                while (j < n && Character.isDigit(s.charAt(j))) j++;
+                String run = s.substring(i, j);
+                char prev = i > 0 ? s.charAt(i - 1) : ' ';
+                boolean skip = prev == '.' || Character.isLetter(prev);
+                if (!skip && i >= 2 && (prev == '+' || prev == '-' || prev == '\u2212') && s.charAt(i - 2) == 'E') skip = true;
+                out.append(thousands && !skip && run.length() > 3 ? addThousands(run) : run);
+                i = j;
+                continue;
+            }
+            if (ch == '\u00d7' || ch == '\u00f7') {
+                out.append(' ').append(ch).append(' ');
+            } else if (ch == '+' || ch == '-' || ch == '\u2212') {
+                if (isUnaryAt(s, i)) out.append(ch);
+                else out.append(' ').append(ch).append(' ');
+            } else if (ch == ',') {
+                out.append(", ");
+            } else {
+                out.append(ch);
+            }
+            i++;
+        }
+        return out.toString();
+    }
+
+    private static boolean isUnaryAt(String s, int i) {
+        int k = i - 1;
+        while (k >= 0 && s.charAt(k) == ' ') k--;
+        if (k < 0) return true;
+        return "(+-\u2212\u00d7\u00f7^,E".indexOf(s.charAt(k)) >= 0;
+    }
+
     public static String errorMessage(Expr.EvalException ex, android.content.Context ctx) {
         String m = ex.getMessage();
         if (m == null) return ctx.getString(R.string.error_math);

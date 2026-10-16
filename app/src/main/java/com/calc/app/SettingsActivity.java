@@ -56,6 +56,14 @@ public final class SettingsActivity extends AppCompatActivity {
         scroll.addView(list);
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
+        LinearLayout gA = group(list, R.string.group_appearance);
+        final String[] themes = {getString(R.string.theme_system), getString(R.string.theme_light), getString(R.string.theme_dark)};
+        addRow(gA, choiceRow(R.drawable.ic_set_theme, R.color.indigo, R.string.settings_theme, themes, () -> store.getTheme(), i -> {
+            store.setTheme(i);
+            AppCompatDelegate.setDefaultNightMode(Store.nightModeFor(i));
+        }));
+        addRow(gA, settingRow(R.drawable.ic_set_keepon, R.color.warn, R.string.settings_keep_on, store.getKeepOn(), (sw, checked) -> store.setKeepOn(checked)));
+
         LinearLayout g0 = group(list, R.string.group_language);
         final String[] langs = {getString(R.string.lang_system), getString(R.string.lang_arabic), getString(R.string.lang_english)};
         addRow(g0, choiceRow(R.drawable.ic_set_globe, R.color.info, R.string.settings_language, langs, () -> currentLang(), i -> setLang(i)));
@@ -83,7 +91,41 @@ public final class SettingsActivity extends AppCompatActivity {
         final int[] hpVals = {20, 30, 50, 100, 200};
         addRow(g3, choiceRow(R.drawable.ic_set_digits, R.color.teal, R.string.settings_hp_digits, hpOpts, () -> indexOf(hpVals, store.getHpDigits()), i -> store.setHpDigits(hpVals[i])));
 
+        LinearLayout g4 = group(list, R.string.group_data);
+        LinearLayout clearRow = baseRow(R.drawable.ic_set_trash, R.color.bad, R.string.settings_clear_history);
+        clearRow.setBackgroundResource(R.drawable.bg_row_flat);
+        clearRow.setClickable(true);
+        clearRow.setFocusable(true);
+        clearRow.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_clear_history)
+                .setMessage(R.string.history_clear_confirm)
+                .setPositiveButton(R.string.history_clear, (d, w) -> {
+                    store.clearHistory();
+                    android.widget.Toast.makeText(this, R.string.history_cleared, android.widget.Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show());
+        addRow(g4, clearRow);
+
+        LinearLayout g5 = group(list, R.string.group_about);
+        LinearLayout verRow = baseRow(R.drawable.ic_set_info, R.color.info, R.string.settings_version);
+        TextView ver = new TextView(this);
+        ver.setTextSize(16);
+        ver.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
+        ver.setText(versionName());
+        verRow.addView(ver);
+        addRow(g5, verRow);
+
         setContentView(root);
+    }
+
+    private String versionName() {
+        try {
+            String v = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            return v == null ? "" : v;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private LinearLayout group(LinearLayout parent, int titleRes) {
