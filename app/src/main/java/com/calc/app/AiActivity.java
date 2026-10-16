@@ -1,6 +1,8 @@
 package com.calc.app;
 
-import android.content.res.ColorStateList;
+import android.content.Intent;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
@@ -19,6 +21,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -34,9 +37,42 @@ public final class AiActivity extends AppCompatActivity {
 
     public static final String EXTRA_PROBLEM = "ai_problem";
 
-    private static final String SYSTEM_PROMPT =
-            "You are a patient math tutor. Reply in the same language as the problem. "
-                    + "Explain with short numbered steps using plain-text math, no LaTeX. Be concise and accurate.";
+    private static String normalizeDigits(String s) {
+        StringBuilder b = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '\u0660' && ch <= '\u0669') b.append((char) ('0' + (ch - '\u0660')));
+            else if (ch >= '\u06f0' && ch <= '\u06f9') b.append((char) ('0' + (ch - '\u06f0')));
+            else if (ch == '\u066b') b.append('.');
+            else if (ch == '\u066c') continue;
+            else if (ch == '\u066a') b.append('%');
+            else b.append(ch);
+        }
+        return b.toString();
+    }
+
+    private static boolean hasArabic(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '\u0600' && ch <= '\u06ff') return true;
+        }
+        return false;
+    }
+
+    private static boolean hasLatin(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) return true;
+        }
+        return false;
+    }
+
+    private String languageInstruction(String problem) {
+        if (hasArabic(problem)) return "Write the whole answer in Arabic. ";
+        if (hasLatin(problem)) return "Write the answer in the same language as the problem. ";
+        String lang = getResources().getConfiguration().getLocales().get(0).getLanguage();
+        return "ar".equals(lang) ? "Write the whole answer in Arabic. " : "Write the answer in English. ";
+    }
 
     private Store store;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -58,6 +94,7 @@ public final class AiActivity extends AppCompatActivity {
     private final StringBuilder output = new StringBuilder();
 
     private ActivityResultLauncher<String[]> importLauncher;
+    private ActivityResultLauncher<String> saveLauncher;
     private TextView chipSmall;
     private TextView chipBalanced;
 
@@ -74,7 +111,9 @@ public final class AiActivity extends AppCompatActivity {
     private File modelFile() {
         File dir = new File(getFilesDir(), "models");
         if (!dir.exists()) dir.mkdirs();
-        return new File(dir, "model.litertlm");
+        String name = store.getAiModelName();
+        if (name.isEmpty()) name = "model.litertlm";
+        return new File(dir, name);
     }
 
     @Override
@@ -84,6 +123,10 @@ public final class AiActivity extends AppCompatActivity {
 
         importLauncher = registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
             if (uri != null) importModel(uri);
+        });
+
+        saveLauncher = registerForActivityResult(new ActivityResultContracts.CreateDocument("application/octet-stream"), uri -> {
+            if (uri != null) exportModel(uri);
         });
 
         buildUi();
@@ -223,15 +266,21 @@ public final class AiActivity extends AppCompatActivity {
         tvModelInfo.setTextSize(13);
         tvModelInfo.setTextColor(c(R.attr.cAccentText));
         infoRow.addView(tvModelInfo, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        TextView remove = new TextView(this);
-        remove.setText(R.string.ai_remove_model);
-        remove.setTextSize(13);
-        remove.setTextColor(getColor(R.color.bad));
-        remove.setPadding(dp(8), dp(6), dp(8), dp(6));
-        remove.setClickable(true);
-        remove.setOnClickListener(v -> removeModel());
-        infoRow.addView(remove);
         solveCard.addView(infoRow);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        TextView share = actionText(getString(R.string.ai_share_model), c(R.attr.cAccentText));
+        share.setOnClickListener(v -> shareModel());
+        TextView save = actionText(getString(R.string.ai_save_model), c(R.attr.cAccentText));
+        save.setOnClickListener(v -> saveLauncher.launch(modelFile().getName()));
+        TextView remove = actionText(getString(R.string.ai_remove_model), getColor(R.color.bad));
+        remove.setOnClickListener(v -> removeModel());
+        actions.addView(share);
+        actions.addView(save);
+        actions.addView(remove);
+        solveCard.addView(actions);
 
         etProblem = new EditText(this);
         etProblem.setHint(R.string.ai_problem_hint);
@@ -283,6 +332,17 @@ public final class AiActivity extends AppCompatActivity {
         content.addView(resultCard, Ui.matchWrap(this, 0, 0, 0));
 
         setContentView(root);
+    }
+
+    private TextView actionText(String text, int color) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextSize(13);
+        t.setTextColor(color);
+        t.setPadding(0, dp(8), dp(16), dp(6));
+        t.setClickable(true);
+        t.setFocusable(true);
+        return t;
     }
 
     private TextView pill(String text, boolean accent) {
@@ -365,13 +425,75 @@ public final class AiActivity extends AppCompatActivity {
     private void removeModel() {
         LocalLlm.get().release();
         modelFile().delete();
+        store.setAiModelName("");
         Toast.makeText(this, R.string.ai_removed, Toast.LENGTH_SHORT).show();
         refreshState();
     }
 
+    // ---------- sharing ----------
+
+    private void shareModel() {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".files", modelFile());
+            Intent i = new Intent(Intent.ACTION_SEND);
+            i.setType("application/octet-stream");
+            i.putExtra(Intent.EXTRA_STREAM, uri);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(i, getString(R.string.ai_share_model)));
+        } catch (Throwable t) {
+            Toast.makeText(this, getString(R.string.ai_error) + ": " + t.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void exportModel(final Uri uri) {
+        Toast.makeText(this, R.string.ai_saving, Toast.LENGTH_SHORT).show();
+        final File src = modelFile();
+        io.execute(() -> {
+            String error = null;
+            try (InputStream in = new java.io.FileInputStream(src);
+                 OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+                if (out == null) throw new IllegalStateException("Cannot open destination");
+                byte[] buf = new byte[1 << 16];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            } catch (Throwable t) {
+                error = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
+            }
+            final String err = error;
+            runOnUiThread(() -> Toast.makeText(this,
+                    err == null ? getString(R.string.ai_saved) : getString(R.string.ai_error) + ": " + err,
+                    Toast.LENGTH_LONG).show());
+        });
+    }
+
     // ---------- model acquisition ----------
 
+    private String displayName(Uri uri) {
+        try (Cursor cur = getContentResolver().query(uri, null, null, null, null)) {
+            if (cur != null && cur.moveToFirst()) {
+                int idx = cur.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) return cur.getString(idx);
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    private static String safeName(String raw) {
+        String n = raw == null ? "" : raw;
+        int q = n.indexOf('?');
+        if (q >= 0) n = n.substring(0, q);
+        int s = n.lastIndexOf('/');
+        if (s >= 0) n = n.substring(s + 1);
+        n = n.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (n.isEmpty()) n = "model";
+        if (n.length() > 100) n = n.substring(n.length() - 100);
+        if (!n.toLowerCase(Locale.US).endsWith(".litertlm")) n = n + ".litertlm";
+        return n;
+    }
+
     private void importModel(final Uri uri) {
+        final String name = safeName(displayName(uri));
         setStatus(getString(R.string.ai_importing), true);
         progress.setIndeterminate(true);
         io.execute(() -> {
@@ -386,7 +508,7 @@ public final class AiActivity extends AppCompatActivity {
             } catch (Throwable t) {
                 error = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
             }
-            finishAcquire(tmp, error);
+            finishAcquire(tmp, error, name);
         });
     }
 
@@ -394,6 +516,7 @@ public final class AiActivity extends AppCompatActivity {
         final String url = etUrl.getText().toString().trim();
         if (url.isEmpty()) return;
         store.setAiUrl(url);
+        final String name = safeName(url);
         downloadCancelled = false;
         setStatus(getString(R.string.ai_downloading), true);
         progress.setIndeterminate(false);
@@ -435,19 +558,26 @@ public final class AiActivity extends AppCompatActivity {
             } finally {
                 if (conn != null) conn.disconnect();
             }
-            finishAcquire(tmp, error);
+            finishAcquire(tmp, error, name);
         });
     }
 
-    private void finishAcquire(final File tmp, final String error) {
+    private void finishAcquire(final File tmp, final String error, final String name) {
         String err = error;
         if (err == null) {
             if (tmp.length() < 1024 * 1024) {
                 err = getString(R.string.ai_invalid_file);
             } else {
                 LocalLlm.get().release();
-                File dest = modelFile();
-                if (dest.exists()) dest.delete();
+                File dir = tmp.getParentFile();
+                File[] existing = dir == null ? null : dir.listFiles();
+                if (existing != null) {
+                    for (File f : existing) {
+                        if (f.getName().endsWith(".litertlm")) f.delete();
+                    }
+                }
+                store.setAiModelName(name);
+                File dest = new File(dir, name);
                 if (!tmp.renameTo(dest)) err = getString(R.string.ai_error);
             }
         }
@@ -481,13 +611,15 @@ public final class AiActivity extends AppCompatActivity {
 
         String exact = null;
         try {
-            String cleaned = problem.replaceAll("[=?\\s]+$", "");
+            String cleaned = normalizeDigits(problem).replaceAll("[=?\\s\\u061f]+$", "");
             double v = Expr.eval(cleaned, store.getAngleMode(), () -> 0.0);
             exact = Fmt.result(v, store.getThousands());
         } catch (Throwable ignored) {
         }
 
         StringBuilder prompt = new StringBuilder();
+        prompt.append("You are a patient math tutor. ").append(languageInstruction(problem))
+                .append("Explain with short numbered steps in plain text, no LaTeX. Be concise and accurate.\n\n");
         prompt.append("Problem: ").append(problem).append("\n");
         if (exact != null) {
             prompt.append("The exact result is ").append(exact)
@@ -508,7 +640,7 @@ public final class AiActivity extends AppCompatActivity {
         btnSolve.setText(R.string.ai_stop);
         scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
 
-        llm.ask(SYSTEM_PROMPT, prompt.toString(), new LocalLlm.Listener() {
+        llm.ask("", prompt.toString(), new LocalLlm.Listener() {
             @Override
             public void onToken(String text) {
                 runOnUiThread(() -> {

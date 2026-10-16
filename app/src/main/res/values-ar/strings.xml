@@ -85,4 +85,8 @@
     <string name="ai_empty_problem">اكتب مسألة أولاً</string>
     <string name="ai_preset_small">صغير \u00b7 265 ميجا</string>
     <string name="ai_preset_balanced">متوازن \u00b7 790 ميجا</string>
+    <string name="ai_share_model">مشاركة النموذج</string>
+    <string name="ai_save_model">حفظ في التخزين</string>
+    <string name="ai_saving">جارٍ حفظ النموذج\u2026</string>
+    <string name="ai_saved">تم حفظ النموذج</string>
 </resources>

@@ -68,12 +68,13 @@ class LocalLlm private constructor() {
         cancelled = false
         try {
             closeConversation()
-            val created = current.createConversation(
-                ConversationConfig(
-                    systemInstruction = Contents.of(system),
-                    samplerConfig = SamplerConfig(topK = 20, topP = 0.9, temperature = 0.2)
-                )
-            )
+            val sampler = SamplerConfig(topK = 20, topP = 0.9, temperature = 0.2)
+            val config = if (system.isBlank()) {
+                ConversationConfig(samplerConfig = sampler)
+            } else {
+                ConversationConfig(systemInstruction = Contents.of(system), samplerConfig = sampler)
+            }
+            val created = current.createConversation(config)
             conversation = created
             created.sendMessageAsync(prompt, object : MessageCallback {
                 override fun onMessage(message: Message) {
