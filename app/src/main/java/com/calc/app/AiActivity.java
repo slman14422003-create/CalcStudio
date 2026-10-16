@@ -133,7 +133,7 @@ public final class AiActivity extends AppCompatActivity {
     private TextView chipBalanced;
     private TextView chipBig;
 
-    private static final String SYSTEM_PROMPT = "You are a math tutor in a calculator app. "
+    public static final String SYSTEM_PROMPT = "You are a math tutor in a calculator app. "
             + "Be brief: at most 5 short numbered steps, plain text, no LaTeX, no markdown. "
             + "A verified result, if given, is correct and is your final answer. "
             + "For an expression with variables and no equals sign, simplify it only. "
@@ -636,8 +636,9 @@ public final class AiActivity extends AppCompatActivity {
         working = true;
         tvModelInfo.setText(R.string.ai_loading);
         final String path = modelFile().getAbsolutePath();
-        final String cache = getCacheDir().getAbsolutePath();
+        final String cache = LocalLlm.cacheDirFor(this);
         io.execute(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_FOREGROUND);
             String error = null;
             try {
                 llm.load(path, cache);

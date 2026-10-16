@@ -1,5 +1,6 @@
 package com.calc.app
 
+import android.content.Context
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
@@ -13,6 +14,7 @@ import com.google.ai.edge.litertlm.ResponseCallback
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.Session
 import com.google.ai.edge.litertlm.SessionConfig
+import java.io.File
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
@@ -78,11 +80,25 @@ class LocalLlm private constructor() {
         qwen3 = modelPath.lowercase().contains("qwen3")
         cachePath = cacheDir
         var created: Engine? = null
-        try {
-            created = buildEngine(modelPath, cacheDir, true)
-            usingGpu = true
-        } catch (t: Throwable) {
-            usingGpu = false
+        val failedMark = File(cacheDir, "gpu_failed")
+        val tryingMark = File(cacheDir, "gpu_trying")
+        if (tryingMark.exists()) {
+            tryingMark.delete()
+            failedMark.createNewFile()
+        }
+        if (!failedMark.exists()) {
+            try {
+                tryingMark.createNewFile()
+                created = buildEngine(modelPath, cacheDir, true)
+                usingGpu = true
+            } catch (t: Throwable) {
+                usingGpu = false
+                try {
+                    failedMark.createNewFile()
+                } catch (ignored: Throwable) {
+                }
+            }
+            tryingMark.delete()
         }
         if (created == null) created = buildEngine(modelPath, cacheDir, false)
         engine = created
@@ -99,6 +115,10 @@ class LocalLlm private constructor() {
         }
         engine = null
         usingGpu = false
+        try {
+            File(cachePath, "gpu_failed").createNewFile()
+        } catch (ignored: Throwable) {
+        }
         engine = buildEngine(path, cachePath, false)
     }
 
@@ -387,6 +407,42 @@ class LocalLlm private constructor() {
 {%- endfor -%}
 {%- if add_generation_prompt -%}<|assistant|>{%- endif -%}
 """.trimStart()
+
+        @JvmStatic
+        fun cacheDirFor(ctx: Context): String {
+            val d = File(ctx.filesDir, "llm_cache")
+            if (!d.exists()) d.mkdirs()
+            return d.absolutePath
+        }
+
+        @JvmStatic
+        fun preload(ctx: Context) {
+            val app = ctx.applicationContext
+            Thread {
+                try {
+                    val cache = File(cacheDirFor(app))
+                    val off = File(cache, "preload_off")
+                    val trying = File(cache, "preload_trying")
+                    if (trying.exists()) {
+                        trying.delete()
+                        off.createNewFile()
+                    }
+                    if (off.exists()) return@Thread
+                    Thread.sleep(800)
+                    var name = Store(app).aiModelName
+                    if (name.isEmpty()) name = "model.litertlm"
+                    val f = File(File(app.filesDir, "models"), name)
+                    if (!f.exists() || f.length() < 1024 * 1024) return@Thread
+                    val llm = get()
+                    if (llm.isLoaded) return@Thread
+                    trying.createNewFile()
+                    llm.load(f.absolutePath, cache.absolutePath)
+                    trying.delete()
+                    llm.warmUp(AiActivity.SYSTEM_PROMPT)
+                } catch (ignored: Throwable) {
+                }
+            }.start()
+        }
 
         @JvmStatic
         fun get(): LocalLlm = instance
