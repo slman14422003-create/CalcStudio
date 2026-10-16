@@ -50,7 +50,7 @@ class LocalLlm private constructor() {
         release()
         val config = EngineConfig(
             modelPath = modelPath,
-            backend = Backend.CPU(),
+            backend = Backend.CPU(threadCount = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(2, 6)),
             cacheDir = cacheDir
         )
         val created = Engine(config)
@@ -107,6 +107,7 @@ class LocalLlm private constructor() {
         val config = ConversationConfig(
             systemInstruction = if (system.isBlank()) null else Contents.of(system),
             samplerConfig = sampler(),
+            maxOutputToken = 320,
             chatTemplate = CHAT_TEMPLATE
         )
         val created = current.createConversation(config)

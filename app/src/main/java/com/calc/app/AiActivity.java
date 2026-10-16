@@ -8,6 +8,8 @@ import android.database.Cursor;
 import android.provider.OpenableColumns;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -39,6 +41,7 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class AiActivity extends AppCompatActivity {
 
@@ -74,11 +77,10 @@ public final class AiActivity extends AppCompatActivity {
         return false;
     }
 
-    private String languageInstruction(String problem) {
-        if (hasArabic(problem)) return "Write the whole answer in Arabic. ";
-        if (hasLatin(problem)) return "Write the answer in the same language as the problem. ";
-        String lang = getResources().getConfiguration().getLocales().get(0).getLanguage();
-        return "ar".equals(lang) ? "Write the whole answer in Arabic. " : "Write the answer in English. ";
+    private boolean arabicReply(String problem) {
+        if (hasArabic(problem)) return true;
+        if (hasLatin(problem)) return false;
+        return "ar".equals(getResources().getConfiguration().getLocales().get(0).getLanguage());
     }
 
     private Store store;
@@ -101,7 +103,16 @@ public final class AiActivity extends AppCompatActivity {
     private TextView btnMenu;
     private TextView tvModelInfo;
     private ScrollView scroll;
-    private final StringBuilder output = new StringBuilder();
+    private final StringBuffer output = new StringBuffer();
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private final AtomicBoolean flushPending = new AtomicBoolean(false);
+    private final Runnable flushRunnable = new Runnable() {
+        @Override
+        public void run() {
+            flushPending.set(false);
+            flushOutput();
+        }
+    };
     private TextView activeBody;
     private LinearLayout activeBubble;
 
@@ -110,14 +121,12 @@ public final class AiActivity extends AppCompatActivity {
     private TextView chipSmall;
     private TextView chipBalanced;
 
-    private static final String SYSTEM_PROMPT = "You are a careful math tutor inside a calculator app. "
-            + "Reply in the language requested in the message. "
-            + "Use short numbered steps in plain text. Never use LaTeX or markdown symbols such as ** or #. "
-            + "Check every arithmetic step before writing it. "
-            + "If a verified result is given, it is correct and your final answer must be exactly that result. "
-            + "If the input is an algebraic expression without an equals sign, simplify it and never invent values for the variables. "
-            + "End a math answer with one line that starts with Answer:. "
-            + "If the message is not about math, answer it briefly and helpfully.";
+    private static final String SYSTEM_PROMPT = "You are a math tutor in a calculator app. "
+            + "Be brief: at most 5 short numbered steps, plain text, no LaTeX, no markdown. "
+            + "A verified result, if given, is correct and is your final answer. "
+            + "For an expression with variables and no equals sign, simplify it only. "
+            + "Always reply in the language of the user message; if it is Arabic, reply only in Arabic. "
+            + "End with one line: Answer: <result>, or الجواب: <result> in Arabic.";
 
     private static final String BASE_URL = "https://huggingface.co/leuconoe/litert-lm-unity-quantized/resolve/main/";
     private static final String URL_SMALL = BASE_URL + "qwen2.5-0.5b-instruct/Qwen2.5-0.5B-Instruct_wi4b64_ekv1280.litertlm";
@@ -159,6 +168,7 @@ public final class AiActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        ui.removeCallbacks(flushRunnable);
         downloadCancelled = true;
         io.shutdown();
     }
@@ -505,12 +515,10 @@ public final class AiActivity extends AppCompatActivity {
         body.setTextSize(16);
         body.setLineSpacing(0, 1.15f);
         body.setTextColor(c(R.attr.cTextSecondary));
-        body.setTextIsSelectable(true);
-        body.setMaxWidth(maxBubbleWidth() - dp(32));
         bubble.addView(body);
 
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.START;
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMarginEnd(dp(28));
         lp.topMargin = dp(10);
         chatList.addView(bubble, lp);
         activeBubble = bubble;
@@ -535,12 +543,23 @@ public final class AiActivity extends AppCompatActivity {
         bubble.addView(copy);
     }
 
+    private void flushOutput() {
+        if (activeBody == null) return;
+        activeBody.setTextColor(c(R.attr.cTextPrimary));
+        activeBody.setText(clean(output.toString()));
+        scrollToEnd();
+    }
+
+    private void scheduleFlush() {
+        if (flushPending.compareAndSet(false, true)) ui.postDelayed(flushRunnable, 90);
+    }
+
     private void scrollToEnd() {
         scroll.post(() -> scroll.scrollTo(0, chatList.getHeight()));
     }
 
     private static String clean(String s) {
-        return s.replace("**", "").replace("__", "").replaceAll("(?m)^#{1,6}\\s*", "").trim();
+        return s.replace("**", "").replace("__", "").replaceAll("(?m)^#{1,6}\\s*", "").replaceAll("\\n\\s*\\n+", "\n").trim();
     }
 
     private void newChat() {
@@ -816,12 +835,14 @@ public final class AiActivity extends AppCompatActivity {
         }
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append(problem).append("\n\n").append(languageInstruction(problem));
-        if (exact != null) {
-            prompt.append("Verified exact result: ").append(exact)
-                    .append(". Explain the steps that lead to it and finish with Answer: ").append(exact);
+        if (arabicReply(problem)) {
+            prompt.append("أجب بالعربية فقط ولا تكتب أي كلمة إنجليزية.\nالسؤال: ").append(problem);
+            if (exact != null) prompt.append("\nالنتيجة المؤكدة: ").append(exact);
+            prompt.append("\nاشرح بخطوات قصيرة بالعربية، واختم بسطر: الجواب: ");
+            if (exact != null) prompt.append(exact);
         } else {
-            prompt.append("Solve it step by step and finish with a line that starts with Answer:");
+            prompt.append(problem).append("\nReply in the same language as the question.");
+            if (exact != null) prompt.append("\nVerified result: ").append(exact).append(".");
         }
 
         etProblem.setText("");
@@ -837,21 +858,21 @@ public final class AiActivity extends AppCompatActivity {
         llm.ask(SYSTEM_PROMPT, prompt.toString(), new LocalLlm.Listener() {
             @Override
             public void onToken(String text) {
-                runOnUiThread(() -> {
-                    output.append(text);
-                    body.setTextColor(c(R.attr.cTextPrimary));
-                    body.setText(clean(output.toString()));
-                    scrollToEnd();
-                });
+                output.append(text);
+                scheduleFlush();
             }
 
             @Override
             public void onDone() {
                 runOnUiThread(() -> {
+                    ui.removeCallbacks(flushRunnable);
+                    flushPending.set(false);
                     setSendState(false);
                     if (output.length() == 0) {
                         body.setText(R.string.ai_empty_reply);
                     } else {
+                        flushOutput();
+                        body.setTextIsSelectable(true);
                         addCopyAction(bubble, body);
                     }
                     scrollToEnd();
@@ -861,7 +882,10 @@ public final class AiActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
+                    ui.removeCallbacks(flushRunnable);
+                    flushPending.set(false);
                     setSendState(false);
+                    if (output.length() > 0) flushOutput();
                     if (output.length() == 0) {
                         body.setTextColor(getColor(R.color.bad));
                         body.setText(getString(R.string.ai_error) + ": " + message);
