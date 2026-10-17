@@ -101,7 +101,7 @@
     <string name="ai_solve">Solve and explain</string>
     <string name="ai_stop">Stop</string>
     <string name="ai_exact_result">Exact result</string>
-    <string name="ai_disclaimer">Explanations come from a small model and can contain mistakes. The exact result is computed by the calculator engine.</string>
+    <string name="ai_disclaimer">Solutions are computed by the calculator math engine and checked automatically. The small model only helps to understand your request.</string>
     <string name="ai_importing">Copying model\u2026</string>
     <string name="ai_downloading">Downloading\u2026</string>
     <string name="ai_error">Something went wrong</string>
@@ -136,4 +136,170 @@
     <string name="ai_prompt_tail"></string>
     <string name="ai_tool_result">Tool result: %1$s = %2$s. Continue the solution using this value and do not recompute it.</string>
     <string name="ai_tool_failed">The tool could not evaluate %1$s. Continue without it.</string>
+
+    <!-- solver -->
+    <string name="sv_lbl_steps">Solution steps:</string>
+    <string name="sv_lbl_verified">Verified</string>
+    <string name="sv_lbl_unverified">Could not be fully verified</string>
+    <string name="sv_err_syntax">I could not read this expression. Check the brackets and operators and try again.</string>
+    <string name="sv_err_unsupported">I cannot solve this type yet. Try rephrasing it or splitting it into simpler parts.</string>
+    <string name="sv_err_unsupported_integral">This integral needs a technique that is not supported yet.</string>
+    <string name="sv_err_math">A math error occurred, for example a division by zero.</string>
+    <string name="sv_err_nonlinear">This system is not linear. Only linear systems are supported.</string>
+    <string name="sv_err_novar">No unknown was found in the expression.</string>
+    <string name="sv_err_dims">The sizes do not match for this operation.</string>
+    <string name="sv_err_square">This operation needs a square matrix.</string>
+    <string name="sv_err_range">A value is outside the supported range.</string>
+    <string name="sv_err_eigen_size">Eigenvalues are supported for 2x2 and 3x3 matrices.</string>
+    <string name="sv_n_numeric">Note: this result was found numerically, so it is approximate.</string>
+    <string name="sv_n_periodic">Note: trigonometric equations repeat. Add 2k\u03c0 (k any integer) to the angle solutions.</string>
+    <string name="sv_ans_solutions">Answer:</string>
+    <string name="sv_ans_no_solution">Answer: no solution.</string>
+    <string name="sv_ans_identity">Answer: true for every value (an identity).</string>
+    <string name="sv_ans_infinite">Answer: infinitely many solutions:</string>
+    <string name="sv_ans_expr">Answer:</string>
+    <string name="sv_ans_value">Answer:</string>
+    <string name="sv_ans_det">Determinant:</string>
+    <string name="sv_ans_matrix">Answer:</string>
+    <string name="sv_ans_rank">Rank:</string>
+    <string name="sv_ans_singular">Answer: the matrix is singular (determinant 0), so it has no inverse.</string>
+    <string name="sv_ans_eigen">Eigenvalues and eigenvectors:</string>
+    <string name="sv_ans_stats">Results:</string>
+    <string name="sv_ans_dne">Answer: the limit does not exist (the two sides differ):</string>
+    <string name="sv_ans_general">General solution:</string>
+    <string name="sv_v_substitute">each solution was substituted back into the original equation</string>
+    <string name="sv_v_identity">both sides reduce to the same expression</string>
+    <string name="sv_v_nosol">the equation reduces to a false statement</string>
+    <string name="sv_v_numeric">numerical check</string>
+    <string name="sv_v_numeric_derivative">the derivative was compared with a numerical derivative at several points</string>
+    <string name="sv_v_derivative_back">differentiating the result gives back the original function</string>
+    <string name="sv_v_det_transpose">the determinant was recomputed with another method and from the transpose</string>
+    <string name="sv_v_det_zero">the determinant equals 0</string>
+    <string name="sv_v_inverse_product">A times its inverse gives the identity matrix</string>
+    <string name="sv_v_mul_transpose">(AB)^T = B^T A^T holds</string>
+    <string name="sv_v_transpose">transposing twice returns the original matrix</string>
+    <string name="sv_v_undo">undoing the operation returns the original matrix</string>
+    <string name="sv_v_rank">there are fewer pivots than unknowns</string>
+    <string name="sv_v_rank_transpose">the rank of the transpose is the same</string>
+    <string name="sv_v_eigen">A\u00b7v = \u03bb\u00b7v was checked for every eigenvector</string>
+    <string name="sv_v_variance_formula">the variance was recomputed with the shortcut formula</string>
+    <string name="sv_v_regression_centered">the slope was recomputed from centered data</string>
+    <string name="sv_v_factorial_formula">recomputed from factorials</string>
+    <string name="sv_v_product_formula">recomputed as a direct product</string>
+    <string name="sv_v_sum_one">the probabilities add up to 1</string>
+    <string name="sv_v_symmetry">the symmetry of the normal curve was checked</string>
+    <string name="sv_v_numeric_limit">values near the point agree with the answer</string>
+    <string name="sv_v_numeric_integral">compared with numerical integration (Simpson)</string>
+    <string name="sv_v_equal_numeric">both forms agree at several test values</string>
+    <string name="sv_v_ode_subst">the solution was substituted back into the equation</string>
+    <string name="sv_d_sum">Differentiate term by term (sum rule): %1$s</string>
+    <string name="sv_d_const">Constant multiple rule: take out the factor %1$s and differentiate %2$s</string>
+    <string name="sv_d_quotient">Quotient rule with u = %1$s and v = %2$s: (u\u2032v \u2212 uv\u2032) / v\u00b2</string>
+    <string name="sv_d_part">%1$s = %2$s, so %1$s\u2032 = %3$s</string>
+    <string name="sv_d_product">Product rule on %1$s: (fg)\u2032 = f\u2032g + fg\u2032</string>
+    <string name="sv_d_power">Power rule on %1$s: (x^n)\u2032 = n x^(n\u22121)</string>
+    <string name="sv_d_chain_power">Power rule with the chain rule on %1$s: n u^(n\u22121) u\u2032, where u = %2$s</string>
+    <string name="sv_d_inner">The derivative of the inner part %1$s is %2$s</string>
+    <string name="sv_d_exp">Exponential rule: (e^u)\u2032 = e^u u\u2032 for %1$s</string>
+    <string name="sv_d_exp_a">Exponential rule: (a^u)\u2032 = a^u ln(a) u\u2032 for %1$s</string>
+    <string name="sv_d_logdiff">The base and the exponent both depend on the variable, so use logarithmic differentiation on %1$s</string>
+    <string name="sv_d_fn">Rule: (%1$s)\u2032 = %2$s \u00b7 u\u2032</string>
+    <string name="sv_d_order">Derivative number %1$s of %2$s</string>
+    <string name="sv_i_const">The integral of the constant %1$s is %1$s\u00b7x</string>
+    <string name="sv_i_sum">Integrate term by term: %1$s</string>
+    <string name="sv_i_const_mult">Take out the constant %1$s and integrate %2$s</string>
+    <string name="sv_i_power">Power rule \u222bx^n dx = x^(n+1)/(n+1), applied to %1$s</string>
+    <string name="sv_i_log">\u222b1/x dx = ln|x| for %1$s</string>
+    <string name="sv_i_linear">Linear inside: \u222bf(ax+b)dx = F(ax+b)/a, so \u222b%1$s dx = %2$s</string>
+    <string name="sv_i_exp">\u222be^(ax+b) dx = e^(ax+b)/a for %1$s</string>
+    <string name="sv_i_exp_a">\u222ba^u du = a^u / ln(a) for %1$s</string>
+    <string name="sv_i_sec2">Standard integral for %1$s: \u222b1/cos\u00b2 = tan, \u222b1/sin\u00b2 = \u2212cot</string>
+    <string name="sv_i_basic">Standard integral: \u222b%1$s dx = %2$s</string>
+    <string name="sv_i_exp_trig">Use the formula for \u222be^(ax) sin(bx) or cos(bx) on %1$s</string>
+    <string name="sv_i_atan">Complete the square: this is an arctan form for %1$s</string>
+    <string name="sv_i_trig_identity">Use the identity sec\u00b2 = 1 + tan\u00b2 on %1$s</string>
+    <string name="sv_i_trig_odd">Odd power: split off one factor and use sin\u00b2 + cos\u00b2 = 1. Rewrite %1$s as %2$s</string>
+    <string name="sv_i_trig_even">Even power: use the half-angle identity. Rewrite %1$s as %2$s</string>
+    <string name="sv_i_usub">Substitution: let u = %1$s, so du = (%2$s) dx. The integral becomes \u222b %3$s du</string>
+    <string name="sv_i_back">Substitute back u = %1$s: %2$s</string>
+    <string name="sv_i_expand">Expand %1$s to get %2$s first</string>
+    <string name="sv_i_parts">Integration by parts \u222bu dv = uv \u2212 \u222bv du with u = %1$s and dv = (%2$s) dx, so du = (%3$s) dx and v = %4$s</string>
+    <string name="sv_i_rational_quad">The denominator has no real roots: split %1$s into a logarithm part and an arctan part</string>
+    <string name="sv_i_rational_double">The denominator has a repeated root %2$s: use partial fractions on %1$s</string>
+    <string name="sv_i_rational_partial">Partial fractions for %1$s with roots %2$s and %3$s: the coefficients are %4$s and %5$s</string>
+    <string name="sv_i_definite">Fundamental theorem of calculus: compute F(%2$s) \u2212 F(%3$s) with F = %1$s</string>
+    <string name="sv_i_numeric">No closed form was found, so the integral is computed numerically (Simpson rule).</string>
+    <string name="sv_f_expand">Expand: %1$s</string>
+    <string name="sv_f_factored">Factored form: %1$s</string>
+    <string name="sv_f_root">%2$s = %1$s is a root, so it gives a factor</string>
+    <string name="sv_s_standard">Move everything to one side: %1$s = 0</string>
+    <string name="sv_s_linear">Linear equation %1$s = 0 with a = %2$s and b = %3$s, so x = \u2212b/a</string>
+    <string name="sv_s_linear_result">%1$s = %2$s / %3$s = %4$s</string>
+    <string name="sv_s_degree">Degree %1$s polynomial: %2$s. Look for rational roots first.</string>
+    <string name="sv_s_rational_root">%2$s = %1$s is a root (rational root test)</string>
+    <string name="sv_s_deflate">Divide it out. What remains is %1$s</string>
+    <string name="sv_s_numeric_roots">No more rational roots, so the remaining roots are computed numerically.</string>
+    <string name="sv_s_quad_formula">Quadratic with a = %1$s, b = %2$s, c = %3$s: x = (\u2212b \u00b1 \u221a(b\u00b2 \u2212 4ac)) / 2a</string>
+    <string name="sv_s_disc">Discriminant %1$s = %2$s</string>
+    <string name="sv_s_disc_zero">The discriminant is 0: one repeated real root.</string>
+    <string name="sv_s_disc_pos">The discriminant is positive: two real roots.</string>
+    <string name="sv_s_disc_neg">The discriminant is negative: two complex roots.</string>
+    <string name="sv_s_isolate">Isolate: %1$s = %2$s</string>
+    <string name="sv_s_root_even">Take the square root (\u00b1): %1$s = \u00b1%2$s</string>
+    <string name="sv_s_root">Take the root: %1$s = %2$s</string>
+    <string name="sv_s_log">Take the logarithm: %1$s = %2$s</string>
+    <string name="sv_s_inv_trig">Apply the inverse function: %1$s gives %2$s (the second solution of the same value is also included)</string>
+    <string name="sv_s_exp">Exponentiate both sides: %1$s gives %2$s</string>
+    <string name="sv_s_abs">Absolute value: the inside equals +%1$s or \u2212%1$s</string>
+    <string name="sv_s_numeric_scan">No algebraic method applies, so the roots are searched numerically.</string>
+    <string name="sv_m_aug">Write the augmented matrix (columns %1$s | constants):\n%2$s</string>
+    <string name="sv_m_swap">Swap %1$s and %2$s:\n%3$s</string>
+    <string name="sv_m_scale">%1$s:\n%2$s</string>
+    <string name="sv_m_elim">%1$s:\n%2$s</string>
+    <string name="sv_m_inconsistent">A row reads 0 = nonzero, so the system is inconsistent.</string>
+    <string name="sv_m_free">There are free variables, so there are infinitely many solutions.</string>
+    <string name="sv_m_show">Matrix %1$s:\n%2$s</string>
+    <string name="sv_m_transpose">Swap rows and columns.</string>
+    <string name="sv_m_mul_rule">Row-by-column rule: the result is %1$s by %2$s.</string>
+    <string name="sv_m_mul_entry">Entry (%1$s): %2$s</string>
+    <string name="sv_m_add_rule">Add entry by entry.</string>
+    <string name="sv_m_sub_rule">Subtract entry by entry.</string>
+    <string name="sv_m_det2">2x2 rule: ad \u2212 bc = %1$s \u2212 %2$s</string>
+    <string name="sv_m_det3">3x3: expand along the first row using cofactors.</string>
+    <string name="sv_m_cofactor">%1$s \u00d7 minor %2$s = %3$s</string>
+    <string name="sv_m_det_elim">Reduce to triangular form with row operations. The determinant is the product of the diagonal, tracking sign changes.</string>
+    <string name="sv_m_det_value">Determinant = %1$s. The inverse exists only when it is not 0.</string>
+    <string name="sv_m_aug_identity">Form [A | I]:\n%1$s</string>
+    <string name="sv_m_charpoly">Characteristic polynomial det(A \u2212 \u03bbI) = %1$s = 0</string>
+    <string name="sv_st_data">Data (%1$s values): %2$s</string>
+    <string name="sv_st_mean">Mean = sum / n = %1$s / %2$s = %3$s</string>
+    <string name="sv_st_sorted">Sorted data: %1$s</string>
+    <string name="sv_st_median">Median (the middle value) = %1$s</string>
+    <string name="sv_st_ss">Sum of squared deviations = %1$s</string>
+    <string name="sv_st_var">Sample variance = %1$s / %2$s = %3$s</string>
+    <string name="sv_st_reg_sums">\u03a3x = %1$s, \u03a3y = %2$s, \u03a3xy = %3$s, \u03a3x\u00b2 = %4$s</string>
+    <string name="sv_st_reg_slope">Slope = (n\u03a3xy \u2212 \u03a3x\u03a3y) / (n\u03a3x\u00b2 \u2212 (\u03a3x)\u00b2) = %1$s</string>
+    <string name="sv_st_reg_icpt">Intercept = (\u03a3y \u2212 slope\u00b7\u03a3x) / n = %1$s</string>
+    <string name="sv_c_ncr">C(n,k) = n! / (k!(n\u2212k)!) = %1$s! / (%2$s! %3$s!)</string>
+    <string name="sv_c_npr">P(n,k) = n! / (n\u2212k)! = %1$s! / %3$s!</string>
+    <string name="sv_c_fact">%1$s! = %1$s \u00d7 (%1$s\u22121) \u00d7 \u2026 \u00d7 1</string>
+    <string name="sv_n_z">z = (x \u2212 mean) / sd = (%1$s \u2212 %2$s) / %3$s = %4$s</string>
+    <string name="sv_n_cdf">Standard normal value \u03a6(%1$s) = %2$s</string>
+    <string name="sv_b_pmf">P(X = %2$s) = C(%1$s,%2$s) p^%2$s (1\u2212p)^(n\u2212%2$s) with p = %3$s and C = %4$s, which gives %5$s</string>
+    <string name="sv_l_direct">Substitute x = %1$s directly: the value is %2$s</string>
+    <string name="sv_l_indeterminate">Direct substitution gives %1$s / %2$s, an indeterminate form.</string>
+    <string name="sv_l_lhopital">L\u2019H\u00f4pital rule: differentiate top and bottom: (%1$s)/(%2$s) \u2192 (%3$s)/(%4$s)</string>
+    <string name="sv_l_numeric_sides">Numerical check near the point: left side \u2248 %1$s, right side \u2248 %2$s</string>
+    <string name="sv_l_inf_rational">Rational function at infinity: compare the degrees (top %1$s, bottom %2$s).</string>
+    <string name="sv_l_numeric_inf">For very large x the values approach %1$s</string>
+    <string name="sv_o_char">Characteristic equation: %1$s = 0</string>
+    <string name="sv_o_double">Repeated root r = %1$s: the solution is (C1 + C2 x) e^(rx)</string>
+    <string name="sv_o_real">Two real roots r1 = %1$s and r2 = %2$s: the solution is C1 e^(r1 x) + C2 e^(r2 x)</string>
+    <string name="sv_o_complex">Complex roots %1$s \u00b1 %2$si: the solution is e^(\u03b1x)(C1 cos \u03b2x + C2 sin \u03b2x)</string>
+    <string name="sv_o_linear">First-order linear equation y\u2032 + (%1$s) y = %2$s</string>
+    <string name="sv_o_mu">Integrating factor \u03bc = %1$s, so y = (\u222b\u03bcq dx + C) / \u03bc</string>
+    <string name="sv_translate_system">You translate a math question into one command line. Output only the command line, nothing else. Formats: DIFF|expr|var ; INT|expr|var ; DINT|expr|var|lower|upper ; SOLVE|equation ; SYSTEM|eq1;eq2 ; LIMIT|expr|var|point|side ; DET|matrix ; INV|matrix ; TRANS|matrix ; RANK|matrix ; EIGEN|matrix ; MMUL|A|B ; STATS|numbers ; REG|xs|ys ; NCR|n|k ; NPR|n|k ; FACT|n ; SIMPLIFY|expr ; EXPAND|expr ; FACTOR|expr. Write expr with + - * / ^ and functions sin cos tan ln sqrt exp. Example: Find the slope function of x squared times sine x -> DIFF|x^2*sin(x)|x</string>
+    <string name="sv_cant_understand">I could not understand the request. Try a clearer form such as: derivative of x^2*sin(x), integral of x*e^x from 0 to 1, solve x^2-5x+6=0, determinant [[1,2],[3,4]].</string>
+    <string name="sv_f_cancel">Cancel the common factor (%2$s \u2212 %1$s)</string>
+    <string name="ai_sample_calculus">Derivative of x^2*sin(x)</string>
 </resources>

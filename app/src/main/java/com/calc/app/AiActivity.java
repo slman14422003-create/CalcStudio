@@ -34,6 +34,13 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.calc.app.solver.Cmd;
+import com.calc.app.solver.Msgs;
+import com.calc.app.solver.Renderer;
+import com.calc.app.solver.Router;
+import com.calc.app.solver.Solution;
+import com.calc.app.solver.SolverEngine;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -431,7 +438,7 @@ public final class AiActivity extends AppCompatActivity {
         dLp.bottomMargin = dp(22);
         box.addView(desc, dLp);
 
-        String[] samples = {"(125 + 75) × 3 − 40", "sqrt(144) + 2^5", getString(R.string.ai_sample_equation)};
+        String[] samples = {"(125 + 75) × 3 − 40", getString(R.string.ai_sample_equation), getString(R.string.ai_sample_calculus)};
         for (String s : samples) {
             TextView chip = new TextView(this);
             chip.setText(s);
@@ -952,7 +959,120 @@ public final class AiActivity extends AppCompatActivity {
             return;
         }
         addAiBubble(null, false);
-        startAsk(problem, null);
+        solveRequest(problem);
+    }
+
+    private final Msgs solverMsgs = new Msgs() {
+        @Override
+        public String get(String key, Object... args) {
+            Locale loc = replyArabic ? new Locale("ar") : Locale.ENGLISH;
+            int id = getResources().getIdentifier("sv_" + key, "string", getPackageName());
+            if (id == 0) return key;
+            Configuration cfg = new Configuration(getResources().getConfiguration());
+            cfg.setLocale(loc);
+            String fmt = createConfigurationContext(cfg).getResources().getString(id);
+            try {
+                return String.format(Locale.ROOT, fmt, args);
+            } catch (RuntimeException e) {
+                return fmt;
+            }
+        }
+    };
+
+    private void beginSolveUi() {
+        output.setLength(0);
+        segment.setLength(0);
+        userStopped = false;
+        waiting = true;
+        dotStep = 0;
+        ui.removeCallbacks(dotsRunnable);
+        ui.postDelayed(dotsRunnable, 500);
+        scrollToEnd();
+    }
+
+    private void solveRequest(final String problem) {
+        final LocalLlm llm = LocalLlm.get();
+        replyArabic = arabicReply(problem);
+        beginSolveUi();
+        final Cmd cmd = Router.understand(problem);
+        if (cmd != null) {
+            runSolver(cmd);
+            return;
+        }
+        Runnable go = () -> translateWithModel(problem);
+        if (llm.isLoaded()) go.run();
+        else loadModelAsync(go);
+    }
+
+    private void runSolver(final Cmd cmd) {
+        working = true;
+        final boolean arabic = replyArabic;
+        io.execute(() -> {
+            String text;
+            try {
+                Solution sol = SolverEngine.run(cmd);
+                text = Renderer.render(sol, solverMsgs, arabic);
+            } catch (Throwable t) {
+                text = solverMsgs.get("err_unsupported");
+            }
+            final String shown = text;
+            runOnUiThread(() -> showSolution(shown));
+        });
+    }
+
+    private void translateWithModel(final String problem) {
+        final LocalLlm llm = LocalLlm.get();
+        llm.reset();
+        output.setLength(0);
+        setSendState(true);
+        llm.ask(getString(R.string.sv_translate_system), problem, new LocalLlm.Listener() {
+            @Override
+            public void onToken(String text) {
+                output.append(text);
+            }
+
+            @Override
+            public void onDone() {
+                if (userStopped) {
+                    runOnUiThread(() -> showSolution(getString(R.string.ai_empty_reply)));
+                    return;
+                }
+                Cmd c = Router.fromModelLine(clean(output.toString()));
+                String text;
+                if (c == null) {
+                    text = solverMsgs.get("cant_understand");
+                } else {
+                    try {
+                        text = Renderer.render(SolverEngine.run(c), solverMsgs, replyArabic);
+                    } catch (Throwable t) {
+                        text = solverMsgs.get("err_unsupported");
+                    }
+                }
+                final String shown = text;
+                runOnUiThread(() -> showSolution(shown));
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> failAnswer(activeBody, message));
+            }
+        });
+    }
+
+    private void showSolution(String text) {
+        working = false;
+        waiting = false;
+        ui.removeCallbacks(dotsRunnable);
+        ui.removeCallbacks(flushRunnable);
+        flushPending.set(false);
+        setSendState(false);
+        if (activeBody == null) return;
+        activeBody.setTextColor(c(R.attr.cTextPrimary));
+        activeBody.setText(text);
+        activeBody.setTextIsSelectable(true);
+        addCopyAction(activeBubble, activeBody);
+        scrollToEnd();
+        LocalLlm.get().scheduleIdleRelease(FOREGROUND_IDLE_MS);
     }
 
     private void addExplainAction(final LinearLayout bubble, final TextView body, final String problem, final String exact) {

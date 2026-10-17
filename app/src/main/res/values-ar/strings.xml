@@ -76,7 +76,7 @@
     <string name="ai_solve">احسب واشرح</string>
     <string name="ai_stop">إيقاف</string>
     <string name="ai_exact_result">النتيجة الدقيقة</string>
-    <string name="ai_disclaimer">الشرح يأتي من نموذج صغير وقد يحتوي على أخطاء. النتيجة الدقيقة تُحسب بواسطة محرك الآلة الحاسبة.</string>
+    <string name="ai_disclaimer">الحلول تُحسب بمحرك الحاسبة الرياضي وتُفحص تلقائيًا. النموذج الصغير يساعد فقط في فهم طلبك.</string>
     <string name="ai_importing">جارٍ نسخ النموذج\u2026</string>
     <string name="ai_downloading">جارٍ التنزيل\u2026</string>
     <string name="ai_error">حدث خطأ</string>
@@ -111,4 +111,169 @@
     <string name="ai_prompt_tail">\nاشرح بخطوات قصيرة بالعربية، واختم بسطر: الجواب: %1$s</string>
     <string name="ai_tool_result">نتيجة الأداة: %1$s = %2$s. أكمل الحل بهذه القيمة ولا تعد حسابها.</string>
     <string name="ai_tool_failed">تعذر على الأداة حساب %1$s. أكمل بدونها.</string>
+
+    <!-- solver -->
+    <string name="sv_lbl_steps">خطوات الحل:</string>
+    <string name="sv_lbl_verified">تم التحقق</string>
+    <string name="sv_lbl_unverified">تعذر التحقق الكامل</string>
+    <string name="sv_err_syntax">لم أستطع قراءة هذا التعبير. تحقق من الأقواس والعمليات وحاول مرة أخرى.</string>
+    <string name="sv_err_unsupported">لا أستطيع حل هذا النوع بعد. جرّب إعادة صياغته أو تقسيمه إلى أجزاء أبسط.</string>
+    <string name="sv_err_unsupported_integral">هذا التكامل يحتاج إلى طريقة غير مدعومة حاليًا.</string>
+    <string name="sv_err_math">حدث خطأ رياضي، مثل القسمة على صفر.</string>
+    <string name="sv_err_nonlinear">هذا النظام غير خطي. المدعوم هو الأنظمة الخطية فقط.</string>
+    <string name="sv_err_novar">لم يتم العثور على مجهول في التعبير.</string>
+    <string name="sv_err_dims">الأبعاد غير متوافقة لهذه العملية.</string>
+    <string name="sv_err_square">هذه العملية تحتاج إلى مصفوفة مربعة.</string>
+    <string name="sv_err_range">قيمة خارج النطاق المدعوم.</string>
+    <string name="sv_err_eigen_size">القيم الذاتية مدعومة للمصفوفات 2×2 و 3×3.</string>
+    <string name="sv_n_numeric">ملاحظة: هذه النتيجة محسوبة عدديًا لذلك هي تقريبية.</string>
+    <string name="sv_n_periodic">ملاحظة: المعادلات المثلثية تتكرر. أضف 2k\u03c0 (k عدد صحيح) إلى حلول الزوايا.</string>
+    <string name="sv_ans_solutions">الجواب:</string>
+    <string name="sv_ans_no_solution">الجواب: لا يوجد حل.</string>
+    <string name="sv_ans_identity">الجواب: صحيحة لكل القيم (متطابقة).</string>
+    <string name="sv_ans_infinite">الجواب: عدد لا نهائي من الحلول:</string>
+    <string name="sv_ans_expr">الجواب:</string>
+    <string name="sv_ans_value">الجواب:</string>
+    <string name="sv_ans_det">المحدد:</string>
+    <string name="sv_ans_matrix">الجواب:</string>
+    <string name="sv_ans_rank">الرتبة:</string>
+    <string name="sv_ans_singular">الجواب: المصفوفة شاذة (محددها صفر) لذلك لا يوجد لها معكوس.</string>
+    <string name="sv_ans_eigen">القيم الذاتية والمتجهات الذاتية:</string>
+    <string name="sv_ans_stats">النتائج:</string>
+    <string name="sv_ans_dne">الجواب: النهاية غير موجودة (الطرفان مختلفان):</string>
+    <string name="sv_ans_general">الحل العام:</string>
+    <string name="sv_v_substitute">تم تعويض كل حل في المعادلة الأصلية</string>
+    <string name="sv_v_identity">الطرفان يختزلان إلى نفس التعبير</string>
+    <string name="sv_v_nosol">المعادلة تؤول إلى عبارة خاطئة</string>
+    <string name="sv_v_numeric">فحص عددي</string>
+    <string name="sv_v_numeric_derivative">تمت مقارنة المشتقة بمشتقة عددية عند عدة نقاط</string>
+    <string name="sv_v_derivative_back">اشتقاق الناتج يعيد الدالة الأصلية</string>
+    <string name="sv_v_det_transpose">أُعيد حساب المحدد بطريقة أخرى ومن المنقول</string>
+    <string name="sv_v_det_zero">المحدد يساوي 0</string>
+    <string name="sv_v_inverse_product">حاصل ضرب المصفوفة في معكوسها يساوي مصفوفة الوحدة</string>
+    <string name="sv_v_mul_transpose">العلاقة (AB)^T = B^T A^T محققة</string>
+    <string name="sv_v_transpose">تبديل الصفوف والأعمدة مرتين يعيد المصفوفة الأصلية</string>
+    <string name="sv_v_undo">عكس العملية يعيد المصفوفة الأصلية</string>
+    <string name="sv_v_rank">عدد المحاور أقل من عدد المجاهيل</string>
+    <string name="sv_v_rank_transpose">رتبة المنقول مساوية لها</string>
+    <string name="sv_v_eigen">تم فحص A\u00b7v = \u03bb\u00b7v لكل متجه ذاتي</string>
+    <string name="sv_v_variance_formula">أُعيد حساب التباين بالصيغة المختصرة</string>
+    <string name="sv_v_regression_centered">أُعيد حساب الميل من البيانات المتمركزة</string>
+    <string name="sv_v_factorial_formula">أُعيد الحساب باستخدام العاملي</string>
+    <string name="sv_v_product_formula">أُعيد الحساب كحاصل ضرب مباشر</string>
+    <string name="sv_v_sum_one">مجموع الاحتمالات يساوي 1</string>
+    <string name="sv_v_symmetry">تم فحص تناظر المنحنى الطبيعي</string>
+    <string name="sv_v_numeric_limit">القيم قرب النقطة تتفق مع الجواب</string>
+    <string name="sv_v_numeric_integral">تمت المقارنة مع التكامل العددي (سمبسون)</string>
+    <string name="sv_v_equal_numeric">الصيغتان متفقتان عند عدة قيم اختبار</string>
+    <string name="sv_v_ode_subst">تم تعويض الحل في المعادلة</string>
+    <string name="sv_d_sum">نشتق حدًا حدًا (قاعدة المجموع): %1$s</string>
+    <string name="sv_d_const">قاعدة الثابت: نُخرج العامل %1$s ونشتق %2$s</string>
+    <string name="sv_d_quotient">قاعدة القسمة مع u = %1$s و v = %2$s: (u\u2032v \u2212 uv\u2032) / v\u00b2</string>
+    <string name="sv_d_part">%1$s = %2$s، إذن %1$s\u2032 = %3$s</string>
+    <string name="sv_d_product">قاعدة الضرب على %1$s: (fg)\u2032 = f\u2032g + fg\u2032</string>
+    <string name="sv_d_power">قاعدة القوة على %1$s: (x^n)\u2032 = n x^(n\u22121)</string>
+    <string name="sv_d_chain_power">قاعدة القوة مع السلسلة على %1$s: n u^(n\u22121) u\u2032 حيث u = %2$s</string>
+    <string name="sv_d_inner">مشتقة الجزء الداخلي %1$s هي %2$s</string>
+    <string name="sv_d_exp">القاعدة الأسية: (e^u)\u2032 = e^u u\u2032 للتعبير %1$s</string>
+    <string name="sv_d_exp_a">القاعدة الأسية: (a^u)\u2032 = a^u ln(a) u\u2032 للتعبير %1$s</string>
+    <string name="sv_d_logdiff">الأساس والأس يعتمدان على المتغير، لذلك نستخدم الاشتقاق اللوغاريتمي على %1$s</string>
+    <string name="sv_d_fn">القاعدة: (%1$s)\u2032 = %2$s \u00b7 u\u2032</string>
+    <string name="sv_d_order">المشتقة رقم %1$s للتعبير %2$s</string>
+    <string name="sv_i_const">تكامل الثابت %1$s هو %1$s\u00b7x</string>
+    <string name="sv_i_sum">نكامل حدًا حدًا: %1$s</string>
+    <string name="sv_i_const_mult">نُخرج الثابت %1$s ونكامل %2$s</string>
+    <string name="sv_i_power">قاعدة القوة \u222bx^n dx = x^(n+1)/(n+1) مطبقة على %1$s</string>
+    <string name="sv_i_log">\u222b1/x dx = ln|x| للتعبير %1$s</string>
+    <string name="sv_i_linear">داخل خطي: \u222bf(ax+b)dx = F(ax+b)/a، إذن \u222b%1$s dx = %2$s</string>
+    <string name="sv_i_exp">\u222be^(ax+b) dx = e^(ax+b)/a للتعبير %1$s</string>
+    <string name="sv_i_exp_a">\u222ba^u du = a^u / ln(a) للتعبير %1$s</string>
+    <string name="sv_i_sec2">تكامل أساسي للتعبير %1$s: \u222b1/cos\u00b2 = tan و \u222b1/sin\u00b2 = \u2212cot</string>
+    <string name="sv_i_basic">تكامل أساسي: \u222b%1$s dx = %2$s</string>
+    <string name="sv_i_exp_trig">نستخدم صيغة \u222be^(ax) sin(bx) أو cos(bx) على %1$s</string>
+    <string name="sv_i_atan">نُكمل المربع: هذا تكامل من صيغة arctan للتعبير %1$s</string>
+    <string name="sv_i_trig_identity">نستخدم المتطابقة sec\u00b2 = 1 + tan\u00b2 على %1$s</string>
+    <string name="sv_i_trig_odd">قوة فردية: نفصل عاملًا واحدًا ونستخدم sin\u00b2 + cos\u00b2 = 1. نكتب %1$s على الشكل %2$s</string>
+    <string name="sv_i_trig_even">قوة زوجية: نستخدم متطابقة نصف الزاوية. نكتب %1$s على الشكل %2$s</string>
+    <string name="sv_i_usub">التعويض: نفرض u = %1$s فيكون du = (%2$s) dx. يصبح التكامل \u222b %3$s du</string>
+    <string name="sv_i_back">نعيد التعويض u = %1$s: %2$s</string>
+    <string name="sv_i_expand">ننشر %1$s أولًا لنحصل على %2$s</string>
+    <string name="sv_i_parts">التكامل بالتجزئة \u222bu dv = uv \u2212 \u222bv du مع u = %1$s و dv = (%2$s) dx، إذن du = (%3$s) dx و v = %4$s</string>
+    <string name="sv_i_rational_quad">المقام ليس له جذور حقيقية: نقسم %1$s إلى جزء لوغاريتمي وجزء arctan</string>
+    <string name="sv_i_rational_double">للمقام جذر مكرر %2$s: نستخدم الكسور الجزئية على %1$s</string>
+    <string name="sv_i_rational_partial">الكسور الجزئية للتعبير %1$s بالجذرين %2$s و %3$s: المعاملان %4$s و %5$s</string>
+    <string name="sv_i_definite">النظرية الأساسية: نحسب F(%2$s) \u2212 F(%3$s) حيث F = %1$s</string>
+    <string name="sv_i_numeric">لم أجد صيغة مغلقة، لذلك حُسب التكامل عدديًا (قاعدة سمبسون).</string>
+    <string name="sv_f_expand">ننشر: %1$s</string>
+    <string name="sv_f_factored">الصيغة المحللة: %1$s</string>
+    <string name="sv_f_root">%2$s = %1$s جذر، لذلك يعطينا عاملًا</string>
+    <string name="sv_s_standard">ننقل كل الحدود إلى طرف واحد: %1$s = 0</string>
+    <string name="sv_s_linear">معادلة خطية %1$s = 0 حيث a = %2$s و b = %3$s، إذن x = \u2212b/a</string>
+    <string name="sv_s_linear_result">%1$s = %2$s / %3$s = %4$s</string>
+    <string name="sv_s_degree">كثيرة حدود من الدرجة %1$s: %2$s. نبحث أولًا عن الجذور النسبية.</string>
+    <string name="sv_s_rational_root">%2$s = %1$s جذر (اختبار الجذور النسبية)</string>
+    <string name="sv_s_deflate">نقسم عليه. الباقي هو %1$s</string>
+    <string name="sv_s_numeric_roots">لا توجد جذور نسبية أخرى، لذلك تُحسب الجذور المتبقية عدديًا.</string>
+    <string name="sv_s_quad_formula">معادلة تربيعية حيث a = %1$s و b = %2$s و c = %3$s: x = (\u2212b \u00b1 \u221a(b\u00b2 \u2212 4ac)) / 2a</string>
+    <string name="sv_s_disc">المميّز %1$s = %2$s</string>
+    <string name="sv_s_disc_zero">المميّز يساوي 0: جذر حقيقي مكرر واحد.</string>
+    <string name="sv_s_disc_pos">المميّز موجب: جذران حقيقيان.</string>
+    <string name="sv_s_disc_neg">المميّز سالب: جذران مركبان.</string>
+    <string name="sv_s_isolate">نعزل: %1$s = %2$s</string>
+    <string name="sv_s_root_even">نأخذ الجذر (\u00b1): %1$s = \u00b1%2$s</string>
+    <string name="sv_s_root">نأخذ الجذر: %1$s = %2$s</string>
+    <string name="sv_s_log">نأخذ اللوغاريتم: %1$s = %2$s</string>
+    <string name="sv_s_inv_trig">نطبق الدالة العكسية: %1$s تعطي %2$s (ونضيف الحل الثاني لنفس القيمة)</string>
+    <string name="sv_s_exp">نرفع الطرفين أسًّا: %1$s تعطي %2$s</string>
+    <string name="sv_s_abs">القيمة المطلقة: ما بداخلها يساوي +%1$s أو \u2212%1$s</string>
+    <string name="sv_s_numeric_scan">لا توجد طريقة جبرية مناسبة، لذلك يتم البحث عن الجذور عدديًا.</string>
+    <string name="sv_m_aug">نكتب المصفوفة الموسعة (الأعمدة %1$s | الثوابت):\n%2$s</string>
+    <string name="sv_m_swap">نبدّل %1$s و %2$s:\n%3$s</string>
+    <string name="sv_m_scale">%1$s:\n%2$s</string>
+    <string name="sv_m_elim">%1$s:\n%2$s</string>
+    <string name="sv_m_inconsistent">ظهر صف بالشكل 0 = عدد غير صفري، إذن النظام غير متسق.</string>
+    <string name="sv_m_free">توجد متغيرات حرة، إذن عدد الحلول لا نهائي.</string>
+    <string name="sv_m_show">المصفوفة %1$s:\n%2$s</string>
+    <string name="sv_m_transpose">نبدّل الصفوف بالأعمدة.</string>
+    <string name="sv_m_mul_rule">قاعدة صف في عمود: المصفوفة الناتجة بأبعاد %1$s × %2$s.</string>
+    <string name="sv_m_mul_entry">العنصر (%1$s): %2$s</string>
+    <string name="sv_m_add_rule">نجمع عنصرًا بعنصر.</string>
+    <string name="sv_m_sub_rule">نطرح عنصرًا بعنصر.</string>
+    <string name="sv_m_det2">قاعدة 2×2: ad \u2212 bc = %1$s \u2212 %2$s</string>
+    <string name="sv_m_det3">3×3: نفك على الصف الأول باستخدام المعاملات المرافقة.</string>
+    <string name="sv_m_cofactor">%1$s \u00d7 الصغرى %2$s = %3$s</string>
+    <string name="sv_m_det_elim">نحوّل إلى الشكل المثلثي بعمليات الصفوف. المحدد هو حاصل ضرب القطر مع مراعاة تغيّر الإشارة.</string>
+    <string name="sv_m_det_value">المحدد = %1$s. المعكوس موجود فقط إذا كان المحدد لا يساوي 0.</string>
+    <string name="sv_m_aug_identity">نكوّن [A | I]:\n%1$s</string>
+    <string name="sv_m_charpoly">كثيرة الحدود المميزة det(A \u2212 \u03bbI) = %1$s = 0</string>
+    <string name="sv_st_data">البيانات (%1$s قيمة): %2$s</string>
+    <string name="sv_st_mean">المتوسط = المجموع / العدد = %1$s / %2$s = %3$s</string>
+    <string name="sv_st_sorted">البيانات مرتبة: %1$s</string>
+    <string name="sv_st_median">الوسيط (القيمة الوسطى) = %1$s</string>
+    <string name="sv_st_ss">مجموع مربعات الانحرافات = %1$s</string>
+    <string name="sv_st_var">التباين العيّني = %1$s / %2$s = %3$s</string>
+    <string name="sv_st_reg_sums">\u03a3x = %1$s و \u03a3y = %2$s و \u03a3xy = %3$s و \u03a3x\u00b2 = %4$s</string>
+    <string name="sv_st_reg_slope">الميل = (n\u03a3xy \u2212 \u03a3x\u03a3y) / (n\u03a3x\u00b2 \u2212 (\u03a3x)\u00b2) = %1$s</string>
+    <string name="sv_st_reg_icpt">المقطع = (\u03a3y \u2212 الميل\u00b7\u03a3x) / n = %1$s</string>
+    <string name="sv_c_ncr">C(n,k) = n! / (k!(n\u2212k)!) = %1$s! / (%2$s! %3$s!)</string>
+    <string name="sv_c_npr">P(n,k) = n! / (n\u2212k)! = %1$s! / %3$s!</string>
+    <string name="sv_c_fact">%1$s! = %1$s \u00d7 (%1$s\u22121) \u00d7 \u2026 \u00d7 1</string>
+    <string name="sv_n_z">z = (x \u2212 المتوسط) / الانحراف = (%1$s \u2212 %2$s) / %3$s = %4$s</string>
+    <string name="sv_n_cdf">قيمة التوزيع الطبيعي المعياري \u03a6(%1$s) = %2$s</string>
+    <string name="sv_b_pmf">P(X = %2$s) = C(%1$s,%2$s) p^%2$s (1\u2212p)^(n\u2212%2$s) مع p = %3$s و C = %4$s، فيكون الناتج %5$s</string>
+    <string name="sv_l_direct">نعوّض x = %1$s مباشرة: القيمة %2$s</string>
+    <string name="sv_l_indeterminate">التعويض المباشر يعطي %1$s / %2$s وهي صيغة غير معينة.</string>
+    <string name="sv_l_lhopital">قاعدة لوبيتال: نشتق البسط والمقام: (%1$s)/(%2$s) \u2192 (%3$s)/(%4$s)</string>
+    <string name="sv_l_numeric_sides">فحص عددي قرب النقطة: من اليسار \u2248 %1$s ومن اليمين \u2248 %2$s</string>
+    <string name="sv_l_inf_rational">دالة نسبية عند اللانهاية: نقارن الدرجتين (البسط %1$s والمقام %2$s).</string>
+    <string name="sv_l_numeric_inf">عندما تكبر x كثيرًا تقترب القيم من %1$s</string>
+    <string name="sv_o_char">المعادلة المميزة: %1$s = 0</string>
+    <string name="sv_o_double">جذر مكرر r = %1$s: الحل هو (C1 + C2 x) e^(rx)</string>
+    <string name="sv_o_real">جذران حقيقيان r1 = %1$s و r2 = %2$s: الحل هو C1 e^(r1 x) + C2 e^(r2 x)</string>
+    <string name="sv_o_complex">جذران مركبان %1$s \u00b1 %2$si: الحل هو e^(\u03b1x)(C1 cos \u03b2x + C2 sin \u03b2x)</string>
+    <string name="sv_o_linear">معادلة خطية من الرتبة الأولى y\u2032 + (%1$s) y = %2$s</string>
+    <string name="sv_o_mu">العامل المكامل \u03bc = %1$s، إذن y = (\u222b\u03bcq dx + C) / \u03bc</string>
+    <string name="sv_cant_understand">لم أفهم الطلب. جرّب صيغة أوضح مثل: مشتقة x^2*sin(x) ، تكامل x*e^x من 0 الى 1 ، حل x^2-5x+6=0 ، محدد [[1,2],[3,4]].</string>
+    <string name="sv_f_cancel">نختصر العامل المشترك (%2$s \u2212 %1$s)</string>
+    <string name="ai_sample_calculus">مشتقة x^2*sin(x)</string>
 </resources>
