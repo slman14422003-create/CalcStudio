@@ -377,10 +377,10 @@ public final class Router {
 
     public static Cmd fromModelLine(String line) {
         if (line == null) return null;
-        Pattern op = Pattern.compile("(?i)\\b(DIFF|INT|DINT|SOLVE|SYSTEM|LIMIT|DET|INV|TRANS|RANK|EIGEN|MMUL|MADD|MSUB|STATS|REG|NCR|NPR|FACT|NORMAL|BINOM|SIMPLIFY|EXPAND|FACTOR|ODE2)\\s*\\|");
+        Pattern opPat = Pattern.compile("(?i)\\b(DIFF|INT|DINT|SOLVE|SYSTEM|LIMIT|DET|INV|TRANS|RANK|EIGEN|MMUL|MADD|MSUB|STATS|REG|NCR|NPR|FACT|NORMAL|BINOM|SIMPLIFY|EXPAND|FACTOR|ODE2)\\s*\\|");
         String first = null;
         for (String l : line.split("\\n")) {
-            Matcher m = op.matcher(l.replace("`", ""));
+            Matcher m = opPat.matcher(l.replace("`", ""));
             if (m.find()) { first = l.replace("`", "").substring(m.start()).trim(); break; }
         }
         if (first == null) return null;
