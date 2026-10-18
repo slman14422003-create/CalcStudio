@@ -34,6 +34,7 @@
         <item name="android:textColorHint">?attr/cTextHint</item>
         <item name="alertDialogTheme">@style/AppDialog</item>
         <item name="android:colorBackground">?attr/cBg</item>
+        <item name="android:windowAnimationStyle">@style/AppWindowAnim</item>
         <item name="colorControlNormal">?attr/cTextSecondary</item>
         <item name="colorControlActivated">?attr/cAccentText</item>
     </style>
@@ -50,6 +51,7 @@
         <item name="windowMinWidthMinor">78%</item>
         <item name="windowMinWidthMajor">50%</item>
         <item name="android:windowElevation">0dp</item>
+        <item name="android:windowAnimationStyle">@style/AppDialogAnim</item>
     </style>
 
     <style name="AppDialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
@@ -113,9 +115,21 @@
     </style>
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/ic_launcher_bg</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
-        <item name="windowSplashScreenAnimationDuration">500</item>
+        <item name="windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
+    </style>
+
+    <style name="AppWindowAnim" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/motion_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/motion_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/motion_close_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/motion_close_exit</item>
+    </style>
+
+    <style name="AppDialogAnim" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/motion_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/motion_dialog_exit</item>
     </style>
 </resources>

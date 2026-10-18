@@ -540,6 +540,7 @@ public final class AiActivity extends AppCompatActivity {
         lp.gravity = Gravity.END;
         lp.topMargin = dp(10);
         chatList.addView(t, lp);
+        Motion.enter(t);
     }
 
     private void addAiBubble(String exact, boolean deferBody) {
@@ -574,6 +575,7 @@ public final class AiActivity extends AppCompatActivity {
         lp.setMarginEnd(dp(28));
         lp.topMargin = dp(10);
         chatList.addView(bubble, lp);
+        Motion.enter(bubble);
         activeBubble = bubble;
         activeBody = body;
     }

@@ -156,7 +156,12 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SplashScreen.installSplashScreen(this);
+        SplashScreen splash = SplashScreen.installSplashScreen(this);
+        splash.setOnExitAnimationListener(provider -> {
+            final View sv = provider.getView();
+            sv.animate().alpha(0f).scaleX(1.06f).scaleY(1.06f).setDuration(Motion.LONG)
+                    .setInterpolator(Motion.STANDARD).withEndAction(provider::remove).start();
+        });
         super.onCreate(savedInstanceState);
 
         store = new Store(this);
@@ -1065,6 +1070,7 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- tabs ----------
 
     private void switchTab(int tab) {
+        boolean changed = tab != currentTab && basicKeypad != null && basicKeypad.getWindowToken() != null;
         currentTab = tab;
         basicKeypad.setVisibility(tab == TAB_BASIC ? View.VISIBLE : View.GONE);
         sciKeypad.setVisibility(tab == TAB_SCI ? View.VISIBLE : View.GONE);
@@ -1079,6 +1085,11 @@ public final class MainActivity extends AppCompatActivity {
         if (tab == TAB_PROG) updateProgDisplay();
         if (tab == TAB_CONV) doConvert();
         refreshIndicators();
+        if (changed) {
+            View shown = tab == TAB_BASIC ? basicKeypad : tab == TAB_SCI ? sciKeypad : tab == TAB_PROG ? progPanel : tab == TAB_CONV ? convPanel : advKeypad;
+            Motion.enter(shown, 8);
+            if (displayBox.getVisibility() == View.VISIBLE) Motion.enter(displayBox, 4);
+        }
     }
 
     private void applyWeights(int tab) {

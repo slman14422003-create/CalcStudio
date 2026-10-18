@@ -38,4 +38,5 @@
     <color name="pink">#FF2D55</color>
     <color name="ic_launcher_bg">#F7FAFF</color>
     <color name="on_accent">#FFFFFF</color>
+    <color name="splash_bg">#FF0B2A8F</color>
 </resources>
