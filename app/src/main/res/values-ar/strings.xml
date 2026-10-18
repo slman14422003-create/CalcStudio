@@ -276,4 +276,29 @@
     <string name="sv_cant_understand">لم أفهم الطلب. جرّب صيغة أوضح مثل: مشتقة x^2*sin(x) ، تكامل x*e^x من 0 الى 1 ، حل x^2-5x+6=0 ، محدد [[1,2],[3,4]].</string>
     <string name="sv_f_cancel">نختصر العامل المشترك (%2$s \u2212 %1$s)</string>
     <string name="ai_sample_calculus">مشتقة x^2*sin(x)</string>
+    <string name="action_copy">نسخ</string>
+    <string name="adv_math">رياضيات</string>
+    <string name="adv_number">أعداد</string>
+    <string name="adv_stats">إحصاء</string>
+    <string name="conv_angle">الزاوية</string>
+    <string name="conv_energy">الطاقة</string>
+    <string name="conv_power">القدرة</string>
+    <string name="conv_pressure">الضغط</string>
+    <string name="conv_volume">الحجم</string>
+    <string name="error_word_limit">خارج النطاق لحجم الكلمة هذا</string>
+    <string name="group_about">حول التطبيق</string>
+    <string name="group_appearance">المظهر</string>
+    <string name="group_data">البيانات</string>
+    <string name="history_clear_confirm">هل تريد حذف كل العمليات المحفوظة؟</string>
+    <string name="history_cleared">تم مسح السجل</string>
+    <string name="history_copy">نسخ النتيجة</string>
+    <string name="history_today">اليوم</string>
+    <string name="history_yesterday">أمس</string>
+    <string name="settings_clear_history">مسح السجل</string>
+    <string name="settings_keep_on">إبقاء الشاشة مضاءة</string>
+    <string name="settings_theme">السمة</string>
+    <string name="settings_version">الإصدار</string>
+    <string name="theme_dark">داكن</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_system">حسب النظام</string>
 </resources>

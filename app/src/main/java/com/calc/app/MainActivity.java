@@ -274,11 +274,11 @@ public final class MainActivity extends AppCompatActivity {
         root.setBackgroundColor(c(R.attr.cBg));
         root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         root.setFitsSystemWindows(true);
-        root.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
         root.addView(buildTopBar());
 
         displayBox = buildDisplay();
+        displayBox.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         root.addView(displayBox);
 
         panelContainer = new FrameLayout(this);
@@ -289,6 +289,10 @@ public final class MainActivity extends AppCompatActivity {
         progPanel = buildProgPanel();
         convPanel = buildConvPanel();
         advKeypad = buildAdvKeypad();
+        basicKeypad.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        sciKeypad.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        progPanel.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        advKeypad.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         panelContainer.addView(basicKeypad);
         panelContainer.addView(sciKeypad);
         panelContainer.addView(progPanel);
@@ -1419,13 +1423,14 @@ public final class MainActivity extends AppCompatActivity {
         inCard.setOrientation(LinearLayout.HORIZONTAL);
         inCard.setGravity(Gravity.CENTER_VERTICAL);
         inCard.setBackgroundResource(R.drawable.bg_card_active);
-        inCard.setPadding(dp(18), dp(12), dp(14), dp(12));
+        inCard.setPaddingRelative(dp(18), dp(12), dp(14), dp(12));
         LinearLayout inText = new LinearLayout(this);
         inText.setOrientation(LinearLayout.VERTICAL);
         inText.addView(Ui.small(this, getString(R.string.conv_from)));
         tvConvIn = new TextView(this);
         tvConvIn.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         tvConvIn.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        tvConvIn.setTextDirection(View.TEXT_DIRECTION_LTR);
         Ui.autoFit(tvConvIn, 22, 44);
         inText.addView(tvConvIn, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
         inCard.addView(inText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1450,7 +1455,7 @@ public final class MainActivity extends AppCompatActivity {
         outCard.setOrientation(LinearLayout.HORIZONTAL);
         outCard.setGravity(Gravity.CENTER_VERTICAL);
         outCard.setBackgroundResource(R.drawable.bg_result_card);
-        outCard.setPadding(dp(18), dp(12), dp(14), dp(12));
+        outCard.setPaddingRelative(dp(18), dp(12), dp(14), dp(12));
         LinearLayout outText = new LinearLayout(this);
         outText.setOrientation(LinearLayout.VERTICAL);
         outText.addView(Ui.small(this, getString(R.string.conv_to)));
@@ -1458,6 +1463,7 @@ public final class MainActivity extends AppCompatActivity {
         tvConvOut.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         tvConvOut.setTextColor(c(R.attr.cAccentText));
         tvConvOut.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        tvConvOut.setTextDirection(View.TEXT_DIRECTION_LTR);
         Ui.autoFit(tvConvOut, 18, 44);
         tvConvOut.setOnLongClickListener(v -> { copyToClipboard(tvConvOut.getText().toString()); return true; });
         outText.addView(tvConvOut, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
@@ -1478,6 +1484,7 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout keys = new LinearLayout(this);
         keys.setOrientation(LinearLayout.VERTICAL);
         col.addView(keys, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        keys.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         KeyHandler h = (k, b) -> handleConvKey(k);
         addKeys(keys, new String[]{"7", "8", "9", "AC"}, null, 1f, true, 3, null, h);
         addKeys(keys, new String[]{"4", "5", "6", "DEL"}, null, 1f, true, 3, null, h);
@@ -1496,7 +1503,7 @@ public final class MainActivity extends AppCompatActivity {
         t.setGravity(Gravity.CENTER_VERTICAL);
         t.setSingleLine(true);
         t.setBackgroundResource(R.drawable.bg_unit_pill);
-        t.setPadding(dp(14), 0, dp(8), 0);
+        t.setPaddingRelative(dp(14), 0, dp(8), 0);
         t.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_chevron_updown, 0);
         t.setCompoundDrawablePadding(dp(4));
         t.setClickable(true);

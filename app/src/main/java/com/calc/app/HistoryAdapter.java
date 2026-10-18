@@ -112,7 +112,7 @@ public final class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.View
         row.setForeground(ctx.getDrawable(R.drawable.bg_row_ripple));
         row.setClickable(true);
         row.setFocusable(true);
-        row.setPadding(Ui.dp(ctx, 18), Ui.dp(ctx, 10), Ui.dp(ctx, 10), Ui.dp(ctx, 14));
+        row.setPaddingRelative(Ui.dp(ctx, 18), Ui.dp(ctx, 10), Ui.dp(ctx, 10), Ui.dp(ctx, 14));
         RecyclerView.LayoutParams rlp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rlp.setMargins(0, Ui.dp(ctx, 4), 0, Ui.dp(ctx, 4));
         row.setLayoutParams(rlp);
@@ -132,7 +132,8 @@ public final class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.View
         expr.setSingleLine(true);
         expr.setEllipsize(TextUtils.TruncateAt.START);
         expr.setTextColor(Ui.attrColor(ctx, R.attr.cTextSecondary));
-        expr.setGravity(Gravity.END);
+        expr.setGravity(Gravity.RIGHT);
+        expr.setTextDirection(View.TEXT_DIRECTION_LTR);
         LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         elp.setMarginStart(Ui.dp(ctx, 12));
         elp.setMarginEnd(Ui.dp(ctx, 8));
@@ -151,7 +152,8 @@ public final class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.View
         result.setEllipsize(TextUtils.TruncateAt.START);
         result.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         result.setTextColor(Ui.attrColor(ctx, R.attr.cTextPrimary));
-        result.setGravity(Gravity.END);
+        result.setGravity(Gravity.RIGHT);
+        result.setTextDirection(View.TEXT_DIRECTION_LTR);
         LinearLayout.LayoutParams rsLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rsLp.topMargin = Ui.dp(ctx, 2);
         rsLp.setMarginEnd(Ui.dp(ctx, 8));

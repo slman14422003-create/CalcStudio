@@ -42,6 +42,48 @@
       ]
     },
     {
+      "id": "smollm2-360m",
+      "label": "SmolLM2 360M",
+      "tier": "small",
+      "url": "https://huggingface.co/litert-community/SmolLM2-360M-Instruct/resolve/main/SmolLM2_360M_instruct.litertlm",
+      "sizeMb": 356,
+      "ramMb": 800,
+      "template": "chatml",
+      "maxOutputTokens": 200,
+      "threads": 2,
+      "tools": false,
+      "idleReleaseSec": 30,
+      "do": [
+        "Keep every step under 15 words."
+      ]
+    },
+    {
+      "id": "qwen3-06b",
+      "label": "Qwen3 0.6B",
+      "tier": "small",
+      "url": "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm",
+      "sizeMb": 586,
+      "ramMb": 1100,
+      "template": "qwen3",
+      "maxOutputTokens": 240,
+      "threads": 3,
+      "tools": false,
+      "idleReleaseSec": 30
+    },
+    {
+      "id": "lfm25-12b",
+      "label": "LFM2.5 1.2B",
+      "tier": "balanced",
+      "url": "https://huggingface.co/litert-community/LFM2.5-1.2B-Instruct/resolve/main/LFM2.5-1.2B-Instruct_int4.litertlm",
+      "sizeMb": 736,
+      "ramMb": 1500,
+      "template": "chatml",
+      "maxOutputTokens": 300,
+      "threads": 3,
+      "tools": false,
+      "idleReleaseSec": 60
+    },
+    {
       "id": "qwen25-15b",
       "label": "Qwen2.5 1.5B",
       "tier": "balanced",
@@ -53,6 +95,19 @@
       "threads": 3,
       "tools": true,
       "maxToolCalls": 3,
+      "idleReleaseSec": 60
+    },
+    {
+      "id": "olmo2-1b",
+      "label": "OLMo 2 1B",
+      "tier": "balanced",
+      "url": "https://huggingface.co/litert-community/OLMo-2-1B-Instruct/resolve/main/OLMo-2-1B-Instruct_q4_block32_ekv4096.litertlm",
+      "sizeMb": 930,
+      "ramMb": 1900,
+      "template": "chatml",
+      "maxOutputTokens": 300,
+      "threads": 3,
+      "tools": false,
       "idleReleaseSec": 60
     },
     {

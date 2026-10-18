@@ -583,7 +583,7 @@ public final class AiActivity extends AppCompatActivity {
         copy.setText(R.string.ai_copy);
         copy.setTextSize(12);
         copy.setTextColor(c(R.attr.cAccentText));
-        copy.setPadding(0, dp(8), dp(12), dp(2));
+        copy.setPaddingRelative(0, dp(8), dp(12), dp(2));
         copy.setClickable(true);
         copy.setFocusable(true);
         copy.setOnClickListener(v -> {
@@ -1081,7 +1081,7 @@ public final class AiActivity extends AppCompatActivity {
         explain.setTextSize(14);
         explain.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         explain.setTextColor(c(R.attr.cAccentText));
-        explain.setPadding(0, dp(4), dp(12), dp(4));
+        explain.setPaddingRelative(0, dp(4), dp(12), dp(4));
         explain.setClickable(true);
         explain.setFocusable(true);
         explain.setOnClickListener(v -> {
