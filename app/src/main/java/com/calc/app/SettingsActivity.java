@@ -22,6 +22,7 @@ public final class SettingsActivity extends AppCompatActivity {
     private static final int DIVIDER_INSET_DP = 60;
 
     private Store store;
+    private TextView iconValue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +63,7 @@ public final class SettingsActivity extends AppCompatActivity {
             store.setTheme(i);
             AppCompatDelegate.setDefaultNightMode(Store.nightModeFor(i));
         }));
+        addRow(gA, appIconRow());
         addRow(gA, settingRow(R.drawable.ic_set_keepon, R.color.warn, R.string.settings_keep_on, store.getKeepOn(), (sw, checked) -> store.setKeepOn(checked)));
 
         LinearLayout g0 = group(list, R.string.group_language);
@@ -215,6 +217,36 @@ public final class SettingsActivity extends AppCompatActivity {
                 })
                 .show());
         return row;
+    }
+
+    private LinearLayout appIconRow() {
+        LinearLayout row = baseRow(R.drawable.ic_set_appicon, R.color.teal, R.string.settings_app_icon);
+
+        iconValue = new TextView(this);
+        iconValue.setTextSize(16);
+        iconValue.setTextColor(Ui.attrColor(this, R.attr.cTextSecondary));
+        iconValue.setText(IconSwitcher.ALL[IconSwitcher.current(this)].nameRes);
+        row.addView(iconValue);
+
+        ImageView chev = new ImageView(this);
+        chev.setImageResource(R.drawable.ic_chevron_end);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(Ui.dp(this, 20), Ui.dp(this, 20));
+        clp.setMarginStart(Ui.dp(this, 4));
+        chev.setLayoutParams(clp);
+        chev.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        row.addView(chev);
+
+        row.setBackgroundResource(R.drawable.bg_row_flat);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setOnClickListener(v -> startActivity(new android.content.Intent(this, IconPickerActivity.class)));
+        return row;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (iconValue != null) iconValue.setText(IconSwitcher.ALL[IconSwitcher.current(this)].nameRes);
     }
 
     private interface OnToggle { void onChange(SwitchCompat sw, boolean checked); }

@@ -157,6 +157,9 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen splash = SplashScreen.installSplashScreen(this);
+        final long splashStart = android.os.SystemClock.uptimeMillis();
+        final boolean holdSplash = savedInstanceState == null;
+        splash.setKeepOnScreenCondition(() -> holdSplash && android.os.SystemClock.uptimeMillis() - splashStart < 1300);
         splash.setOnExitAnimationListener(provider -> {
             final View sv = provider.getView();
             sv.animate().alpha(0f).scaleX(1.06f).scaleY(1.06f).setDuration(Motion.LONG)
