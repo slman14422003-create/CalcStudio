@@ -301,4 +301,16 @@
     <string name="theme_dark">داكن</string>
     <string name="theme_light">فاتح</string>
     <string name="theme_system">حسب النظام</string>
+
+    <string name="settings_app_icon">أيقونة التطبيق</string>
+    <string name="app_icon_hint">تتغير الأيقونة على الشاشة الرئيسية خلال ثوانٍ.</string>
+    <string name="icon_blue">أزرق</string>
+    <string name="icon_violet">بنفسجي</string>
+    <string name="icon_green">أخضر</string>
+    <string name="icon_orange">برتقالي</string>
+    <string name="icon_red">أحمر</string>
+    <string name="icon_pink">وردي</string>
+    <string name="icon_graphite">رمادي</string>
+    <string name="icon_midnight">كحلي</string>
+    <string name="icon_gold">ذهبي</string>
 </resources>

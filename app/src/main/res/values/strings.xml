@@ -302,4 +302,16 @@
     <string name="sv_cant_understand">I could not understand the request. Try a clearer form such as: derivative of x^2*sin(x), integral of x*e^x from 0 to 1, solve x^2-5x+6=0, determinant [[1,2],[3,4]].</string>
     <string name="sv_f_cancel">Cancel the common factor (%2$s \u2212 %1$s)</string>
     <string name="ai_sample_calculus">Derivative of x^2*sin(x)</string>
+
+    <string name="settings_app_icon">App icon</string>
+    <string name="app_icon_hint">The icon on your home screen changes within a few seconds.</string>
+    <string name="icon_blue">Blue</string>
+    <string name="icon_violet">Violet</string>
+    <string name="icon_green">Green</string>
+    <string name="icon_orange">Orange</string>
+    <string name="icon_red">Red</string>
+    <string name="icon_pink">Pink</string>
+    <string name="icon_graphite">Graphite</string>
+    <string name="icon_midnight">Midnight</string>
+    <string name="icon_gold">Gold</string>
 </resources>
