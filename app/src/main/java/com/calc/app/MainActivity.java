@@ -17,6 +17,8 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.text.TextPaint;
+import android.util.TypedValue;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -495,6 +497,7 @@ public final class MainActivity extends AppCompatActivity {
         box.addView(indicators);
 
         exprScroll = new HorizontalScrollView(this);
+        exprScroll.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         exprScroll.setHorizontalScrollBarEnabled(false);
         exprScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         exprScroll.setFillViewport(true);
@@ -507,6 +510,7 @@ public final class MainActivity extends AppCompatActivity {
         tvExpr.setMinHeight(dp(34));
         tvExpr.setTextColor(c(R.attr.cTextSecondary));
         tvExpr.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        tvExpr.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvExpr.setSingleLine(true);
         tvExpr.setText("");
         exprScroll.addView(tvExpr, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -515,10 +519,17 @@ public final class MainActivity extends AppCompatActivity {
         tvResult = new TextView(this);
         tvResult.setTextColor(c(R.attr.cTextPrimary));
         tvResult.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        tvResult.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        tvResult.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvResult.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         tvResult.setText("0");
         tvResult.setMinHeight(dp(44));
-        Ui.autoFit(tvResult, 28, 72);
+        tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 72);
+        tvResult.setMaxLines(1);
+        tvResult.setHorizontallyScrolling(true);
+        tvResult.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol || b - t != ob - ot) tvResult.post(this::fitResult);
+        });
         tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         tvResult.setOnLongClickListener(v -> {
             copyResult();
@@ -547,6 +558,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private void showExpr(String raw) {
         tvExpr.setText(Fmt.prettyExpr(raw, store.getThousands()));
+        fitExpr();
         exprScroll.post(() -> exprScroll.fullScroll(View.FOCUS_RIGHT));
         refreshOperatorHighlight();
     }
@@ -555,6 +567,67 @@ public final class MainActivity extends AppCompatActivity {
         resultIsError = error;
         tvResult.setText(text);
         tvResult.setTextColor(error ? getColor(R.color.bad) : c(R.attr.cTextPrimary));
+        fitResult();
+        tvResult.post(this::fitResult);
+    }
+
+    private float spPx(float sp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, getResources().getDisplayMetrics());
+    }
+
+    private void fitExpr() {
+        int avail = exprScroll.getWidth() - exprScroll.getPaddingLeft() - exprScroll.getPaddingRight();
+        CharSequence text = tvExpr.getText();
+        if (avail <= 0 || text.length() == 0) {
+            tvExpr.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+            return;
+        }
+        TextPaint p = new TextPaint(tvExpr.getPaint());
+        float size = spPx(24);
+        float min = spPx(15);
+        while (size > min) {
+            p.setTextSize(size);
+            if (p.measureText(text, 0, text.length()) <= avail) break;
+            size -= spPx(1);
+        }
+        tvExpr.setTextSize(TypedValue.COMPLEX_UNIT_PX, Math.max(size, min));
+    }
+
+    private void fitResult() {
+        int avail = tvResult.getWidth() - tvResult.getPaddingLeft() - tvResult.getPaddingRight();
+        int availH = tvResult.getHeight() - tvResult.getPaddingTop() - tvResult.getPaddingBottom();
+        CharSequence text = tvResult.getText();
+        if (avail <= 0 || text.length() == 0) return;
+        TextPaint p = new TextPaint(tvResult.getPaint());
+        float size = spPx(72);
+        float singleMin = spPx(34);
+        while (size > singleMin) {
+            p.setTextSize(size);
+            if (p.measureText(text, 0, text.length()) <= avail) break;
+            size -= spPx(1);
+        }
+        p.setTextSize(size);
+        if (p.measureText(text, 0, text.length()) <= avail) {
+            tvResult.setHorizontallyScrolling(true);
+            tvResult.setMaxLines(1);
+            tvResult.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+            return;
+        }
+        float wrapSize = spPx(30);
+        float wrapMin = spPx(14);
+        int maxLines = 1;
+        while (true) {
+            p.setTextSize(wrapSize);
+            float lineH = p.getFontMetrics().bottom - p.getFontMetrics().top;
+            int fit = Math.max(1, (int) (availH / lineH));
+            int need = (int) Math.ceil(p.measureText(text, 0, text.length()) / (float) avail) + 1;
+            maxLines = fit;
+            if (need <= fit || wrapSize <= wrapMin) break;
+            wrapSize -= spPx(1);
+        }
+        tvResult.setHorizontallyScrolling(false);
+        tvResult.setMaxLines(maxLines);
+        tvResult.setTextSize(TypedValue.COMPLEX_UNIT_PX, wrapSize);
     }
 
     private void copyResult() {
