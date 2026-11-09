@@ -628,7 +628,7 @@ public final class MainActivity extends AppCompatActivity {
     private View buildDisplay() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(26), dp(2), dp(26), dp(8));
+        box.setPadding(dp(20), dp(2), dp(20), dp(8));
         box.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         LinearLayout indicators = new LinearLayout(this);
@@ -670,8 +670,16 @@ public final class MainActivity extends AppCompatActivity {
         tvExpr.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         tvExpr.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvExpr.setSingleLine(true);
+        tvExpr.setIncludeFontPadding(false);
+        tvExpr.setPadding(dp(6), 0, dp(6), 0);
         tvExpr.setText("");
         exprScroll.addView(tvExpr, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        exprScroll.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol) exprScroll.post(() -> {
+                fitExpr();
+                scrollExprEnd();
+            });
+        });
         box.addView(exprScroll);
 
         tvResult = new TextView(this);
@@ -681,6 +689,7 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvResult.setGravity(Gravity.END | Gravity.BOTTOM);
         tvResult.setIncludeFontPadding(false);
+        tvResult.setPadding(dp(6), 0, dp(6), 0);
         tvResult.setText("0");
                 tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 88);
         tvResult.setMaxLines(1);
@@ -733,8 +742,17 @@ public final class MainActivity extends AppCompatActivity {
     private void showExpr(String raw) {
         tvExpr.setText(Fmt.prettyExpr(raw, store.getThousands()));
         fitExpr();
-        exprScroll.post(() -> exprScroll.fullScroll(View.FOCUS_RIGHT));
+        scrollExprEnd();
         refreshOperatorHighlight();
+    }
+
+    private void scrollExprEnd() {
+        exprScroll.post(() -> {
+            View child = exprScroll.getChildAt(0);
+            if (child == null) return;
+            int x = Math.max(0, child.getWidth() - exprScroll.getWidth());
+            exprScroll.scrollTo(x, 0);
+        });
     }
 
     private void setResult(String text, boolean error) {
@@ -750,7 +768,8 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void fitExpr() {
-        int avail = exprScroll.getWidth() - exprScroll.getPaddingLeft() - exprScroll.getPaddingRight();
+        int avail = exprScroll.getWidth() - exprScroll.getPaddingLeft() - exprScroll.getPaddingRight()
+                - tvExpr.getPaddingLeft() - tvExpr.getPaddingRight() - dp(4);
         CharSequence text = tvExpr.getText();
         if (avail <= 0 || text.length() == 0) {
             tvExpr.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
@@ -758,7 +777,7 @@ public final class MainActivity extends AppCompatActivity {
         }
         TextPaint p = new TextPaint(tvExpr.getPaint());
         float size = spPx(28);
-        float min = spPx(16);
+        float min = spPx(14);
         while (size > min) {
             p.setTextSize(size);
             if (p.measureText(text, 0, text.length()) <= avail) break;
@@ -768,7 +787,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void fitResult() {
-        int avail = tvResult.getWidth() - tvResult.getPaddingLeft() - tvResult.getPaddingRight();
+        int avail = tvResult.getWidth() - tvResult.getPaddingLeft() - tvResult.getPaddingRight() - dp(4);
         int availH = tvResult.getHeight() - tvResult.getPaddingTop() - tvResult.getPaddingBottom();
         if (availH <= 0) return;
         CharSequence text = tvResult.getText();

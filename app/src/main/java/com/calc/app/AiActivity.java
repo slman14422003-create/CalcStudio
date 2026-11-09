@@ -17,6 +17,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.widget.LinearLayout;
@@ -25,6 +26,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
@@ -85,6 +87,9 @@ public final class AiActivity extends AppCompatActivity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private volatile boolean downloadCancelled = false;
     private volatile boolean working = false;
+    private final OnlineLlm online = new OnlineLlm();
+    private volatile boolean onlineBusy = false;
+    private boolean setupRequested = false;
 
     private LinearLayout setupCard;
     private ScrollView setupScroll;
@@ -179,6 +184,18 @@ public final class AiActivity extends AppCompatActivity {
         });
 
         buildUi();
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (setupRequested) {
+                    setupRequested = false;
+                    refreshState();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
         String seed = getIntent().getStringExtra(EXTRA_PROBLEM);
         if (seed != null) etProblem.setText(seed);
         refreshState();
@@ -205,6 +222,7 @@ public final class AiActivity extends AppCompatActivity {
         ui.removeCallbacks(dotsRunnable);
         ui.removeCallbacks(flushRunnable);
         downloadCancelled = true;
+        online.cancel();
         io.shutdown();
     }
 
@@ -231,7 +249,7 @@ public final class AiActivity extends AppCompatActivity {
         back.setImageResource(R.drawable.ic_back);
         back.setContentDescription(getString(R.string.action_back));
         back.setLayoutParams(new LinearLayout.LayoutParams(dp(42), dp(42)));
-        back.setOnClickListener(v -> finish());
+        back.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
         bar.addView(back);
 
         LinearLayout titleBox = new LinearLayout(this);
@@ -475,12 +493,16 @@ public final class AiActivity extends AppCompatActivity {
 
     private void showModelMenu(View anchor) {
         PopupMenu menu = new PopupMenu(this, anchor);
-        menu.getMenu().add(0, 1, 0, R.string.ai_share_model);
-        menu.getMenu().add(0, 2, 1, R.string.ai_save_model);
-        menu.getMenu().add(0, 3, 2, R.string.ai_remove_model);
-        android.view.MenuItem power = menu.getMenu().add(0, 4, 3, R.string.ai_low_power);
-        power.setCheckable(true);
-        power.setChecked(store.getAiLowPower());
+        menu.getMenu().add(0, 5, 0, R.string.ai_menu_online);
+        menu.getMenu().add(0, 6, 1, R.string.ai_menu_local);
+        if (hasModel()) {
+            menu.getMenu().add(0, 1, 2, R.string.ai_share_model);
+            menu.getMenu().add(0, 2, 3, R.string.ai_save_model);
+            menu.getMenu().add(0, 3, 4, R.string.ai_remove_model);
+            android.view.MenuItem power = menu.getMenu().add(0, 4, 5, R.string.ai_low_power);
+            power.setCheckable(true);
+            power.setChecked(store.getAiLowPower());
+        }
         menu.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == 1) shareModel();
@@ -491,10 +513,134 @@ public final class AiActivity extends AppCompatActivity {
                 newChat();
                 LocalLlm.get().release();
                 Toast.makeText(this, R.string.ai_power_changed, Toast.LENGTH_SHORT).show();
+            } else if (id == 5) showOnlineDialog();
+            else if (id == 6) {
+                setupRequested = true;
+                refreshState();
             }
             return true;
         });
         menu.show();
+    }
+
+    private EditText dialogField(String hint, String text, boolean secret) {
+        EditText e = new EditText(this);
+        e.setHint(hint);
+        e.setSingleLine(true);
+        e.setInputType(secret
+                ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+                : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        e.setTextSize(14);
+        e.setTextColor(c(R.attr.cTextPrimary));
+        e.setHintTextColor(c(R.attr.cTextHint));
+        e.setBackground(Ui.round(getColor(R.color.field), dp(14), 0, 0));
+        e.setPadding(dp(14), dp(12), dp(14), dp(12));
+        e.setText(text);
+        e.setTextDirection(View.TEXT_DIRECTION_LTR);
+        e.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        return e;
+    }
+
+    private void showOnlineDialog() {
+        final String[] sel = {store.getOnlineProvider()};
+        String[] initial = OnlineLlm.preset(sel[0]);
+        String model0 = store.getOnlineModel().isEmpty() ? initial[3] : store.getOnlineModel();
+        String url0 = store.getOnlineUrl().isEmpty() ? initial[2] : store.getOnlineUrl();
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(12), dp(20), dp(4));
+
+        TextView desc = new TextView(this);
+        desc.setText(R.string.ai_online_desc);
+        desc.setTextSize(13);
+        desc.setTextColor(c(R.attr.cTextSecondary));
+        box.addView(desc);
+
+        final EditText etKey = dialogField(getString(R.string.ai_online_key_hint), store.getOnlineKey(), true);
+        final EditText etModel = dialogField(getString(R.string.ai_online_model_hint), model0, false);
+        final EditText etEndpoint = dialogField(getString(R.string.ai_online_url_hint), url0, false);
+
+        HorizontalScrollView chipScroll = new HorizontalScrollView(this);
+        chipScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout chipRow = new LinearLayout(this);
+        chipRow.setOrientation(LinearLayout.HORIZONTAL);
+        chipScroll.addView(chipRow);
+        final List<TextView> chips = new ArrayList<>();
+        for (final String[] p : OnlineLlm.PRESETS) {
+            TextView chip = Ui.chip(this, p[1]);
+            Ui.setChipState(chip, p[0].equals(sel[0]));
+            chip.setOnClickListener(v -> {
+                sel[0] = p[0];
+                for (int i = 0; i < chips.size(); i++) Ui.setChipState(chips.get(i), OnlineLlm.PRESETS[i][0].equals(p[0]));
+                if (!p[2].isEmpty()) {
+                    etEndpoint.setText(p[2]);
+                    etModel.setText(p[3]);
+                }
+            });
+            chips.add(chip);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40));
+            lp.setMarginEnd(dp(8));
+            chipRow.addView(chip, lp);
+        }
+        LinearLayout.LayoutParams csLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        csLp.topMargin = dp(12);
+        box.addView(chipScroll, csLp);
+
+        LinearLayout.LayoutParams fLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        fLp.topMargin = dp(10);
+        box.addView(etKey, fLp);
+        box.addView(etModel, fLp);
+        box.addView(etEndpoint, fLp);
+
+        TextView link = new TextView(this);
+        link.setText(R.string.ai_online_get_key);
+        link.setTextSize(14);
+        link.setTextColor(c(R.attr.cAccentText));
+        link.setPadding(0, dp(12), 0, dp(8));
+        link.setClickable(true);
+        link.setOnClickListener(v -> {
+            String target = OnlineLlm.preset(sel[0])[4];
+            if (target.isEmpty()) return;
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(target)));
+            } catch (Throwable ignored) {
+            }
+        });
+        box.addView(link);
+
+        ScrollView sv = new ScrollView(this);
+        sv.addView(box);
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.ai_online_title)
+                .setView(sv)
+                .setPositiveButton(R.string.ai_online_save, null)
+                .setNeutralButton(R.string.ai_online_disable, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String key = etKey.getText().toString().trim();
+            String model = etModel.getText().toString().trim();
+            String endpoint = etEndpoint.getText().toString().trim();
+            if (key.isEmpty() || model.isEmpty() || endpoint.isEmpty()) {
+                Toast.makeText(this, R.string.ai_online_missing, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            store.setOnline(sel[0], key, model, endpoint);
+            store.setAiEngine(Store.ENGINE_ONLINE);
+            Toast.makeText(this, R.string.ai_online_saved, Toast.LENGTH_SHORT).show();
+            refreshState();
+            dialog.dismiss();
+        });
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+            store.setOnline(sel[0], "", etModel.getText().toString().trim(), etEndpoint.getText().toString().trim());
+            store.setAiEngine(Store.ENGINE_AUTO);
+            Toast.makeText(this, R.string.ai_online_off, Toast.LENGTH_SHORT).show();
+            refreshState();
+            dialog.dismiss();
+        });
     }
 
     private TextView pill(String text, boolean accent) {
@@ -624,6 +770,7 @@ public final class AiActivity extends AppCompatActivity {
 
     private void newChat() {
         LocalLlm llm = LocalLlm.get();
+        online.cancel();
         userStopped = true;
         toolPending = false;
         segment.setLength(0);
@@ -646,23 +793,47 @@ public final class AiActivity extends AppCompatActivity {
         return f.exists() && f.length() > 1024 * 1024;
     }
 
+    private boolean engineOnline() {
+        return store.getAiEngine() == Store.ENGINE_ONLINE
+                && !store.getOnlineKey().isEmpty()
+                && !store.getOnlineModel().isEmpty()
+                && !store.getOnlineUrl().isEmpty();
+    }
+
+    private boolean engineLocal() {
+        return !engineOnline() && hasModel();
+    }
+
+    private boolean engineAny() {
+        return engineOnline() || engineLocal();
+    }
+
     private void refreshState() {
         boolean has = hasModel();
-        setupScroll.setVisibility(has ? View.GONE : View.VISIBLE);
-        chatArea.setVisibility(has ? View.VISIBLE : View.GONE);
-        btnNew.setVisibility(has ? View.VISIBLE : View.GONE);
-        btnMenu.setVisibility(has ? View.VISIBLE : View.GONE);
+        boolean showSetup = setupRequested;
+        setupScroll.setVisibility(showSetup ? View.VISIBLE : View.GONE);
+        chatArea.setVisibility(showSetup ? View.GONE : View.VISIBLE);
+        btnNew.setVisibility(showSetup ? View.GONE : View.VISIBLE);
+        btnMenu.setVisibility(View.VISIBLE);
+        String info;
         if (has) {
             File f = modelFile();
             conf = ModelConf.forFile(this, f.getName(), f.length());
+        } else {
+            conf = ModelConf.fallback();
+        }
+        if (engineOnline()) {
+            info = getString(R.string.ai_engine_online, OnlineLlm.preset(store.getOnlineProvider())[1], store.getOnlineModel());
+        } else if (has) {
+            File f = modelFile();
             long mb = f.length() / (1024 * 1024);
             LocalLlm llm = LocalLlm.get();
-            String info = getString(R.string.ai_model_ready) + " \u00b7 " + conf.label + " \u00b7 " + mb + " MB";
+            info = getString(R.string.ai_model_ready) + " \u00b7 " + conf.label + " \u00b7 " + mb + " MB";
             if (llm.isLoaded()) info += " \u00b7 " + llm.getBackendName();
-            tvModelInfo.setText(info);
         } else {
-            tvModelInfo.setText(R.string.ai_subtitle);
+            info = getString(R.string.ai_engine_builtin);
         }
+        tvModelInfo.setText(info);
     }
 
     private void setStatus(String text, boolean showProgress) {
@@ -888,6 +1059,8 @@ public final class AiActivity extends AppCompatActivity {
                 setStatus(getString(R.string.ai_error) + ": " + shown, false);
             } else {
                 setStatus("", false);
+                setupRequested = false;
+                store.setAiEngine(Store.ENGINE_LOCAL);
                 refreshState();
             }
         });
@@ -897,6 +1070,11 @@ public final class AiActivity extends AppCompatActivity {
 
     private void onSendClicked() {
         final LocalLlm llm = LocalLlm.get();
+        if (onlineBusy) {
+            userStopped = true;
+            online.cancel();
+            return;
+        }
         if (llm.isBusy()) {
             userStopped = true;
             llm.cancel();
@@ -945,7 +1123,7 @@ public final class AiActivity extends AppCompatActivity {
 
     private void sendText(final String problem) {
         final LocalLlm llm = LocalLlm.get();
-        if (llm.isBusy() || working) return;
+        if (llm.isBusy() || working || onlineBusy) return;
         if (TextUtils.isEmpty(problem)) {
             Toast.makeText(this, R.string.ai_empty_problem, Toast.LENGTH_SHORT).show();
             return;
@@ -956,12 +1134,35 @@ public final class AiActivity extends AppCompatActivity {
         addUserBubble(problem);
         if (exact != null) {
             addAiBubble(exact, true);
-            addExplainAction(activeBubble, activeBody, problem, exact);
+            String steps = arithSteps(problem);
+            if (steps != null) {
+                activeBody.setVisibility(View.VISIBLE);
+                activeBody.setTextColor(c(R.attr.cTextPrimary));
+                activeBody.setText(steps);
+                activeBody.setTextIsSelectable(true);
+                addCopyAction(activeBubble, activeBody);
+            } else if (engineAny()) {
+                addExplainAction(activeBubble, activeBody, problem, exact);
+            }
             scrollToEnd();
             return;
         }
         addAiBubble(null, false);
         solveRequest(problem);
+    }
+
+    private String arithSteps(String problem) {
+        try {
+            replyArabic = arabicReply(problem);
+            Cmd cmd = new Cmd("ARITH");
+            cmd.expr = problem;
+            cmd.raw = problem;
+            Solution sol = SolverEngine.run(cmd);
+            if (sol.failed || sol.steps.size() < 3) return null;
+            return Renderer.render(sol, solverMsgs, replyArabic);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private final Msgs solverMsgs = new Msgs() {
@@ -1001,9 +1202,95 @@ public final class AiActivity extends AppCompatActivity {
             runSolver(cmd);
             return;
         }
-        Runnable go = () -> translateWithModel(problem);
-        if (llm.isLoaded()) go.run();
-        else loadModelAsync(go);
+        if (engineOnline()) {
+            translateOnline(problem);
+            return;
+        }
+        if (engineLocal()) {
+            Runnable go = () -> translateWithModel(problem);
+            if (llm.isLoaded()) go.run();
+            else loadModelAsync(go);
+            return;
+        }
+        showSolution(solverMsgs.get("cant_understand") + "\n\n" + getString(R.string.ai_need_engine));
+    }
+
+    private void translateOnline(final String problem) {
+        onlineBusy = true;
+        working = true;
+        setSendState(true);
+        final String url = store.getOnlineUrl();
+        final String key = store.getOnlineKey();
+        final String model = store.getOnlineModel();
+        final String system = getString(R.string.ai_online_system);
+        final String translate = getString(R.string.sv_translate_system);
+        final String direct = buildPrompt(problem, null);
+        io.execute(() -> {
+            String text = null;
+            String err = null;
+            try {
+                String reply = online.chat(url, key, model, translate, problem, 120);
+                Cmd c = Router.fromModelLine(clean(reply));
+                if (c != null) {
+                    try {
+                        text = Renderer.render(SolverEngine.run(c), solverMsgs, replyArabic);
+                    } catch (Throwable t) {
+                        text = solverMsgs.get("err_unsupported");
+                    }
+                } else {
+                    text = clean(online.chat(url, key, model, system, direct, 500));
+                    if (text.isEmpty()) text = solverMsgs.get("cant_understand");
+                }
+            } catch (Throwable t) {
+                err = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
+            }
+            final String shown = text;
+            final String failure = err;
+            runOnUiThread(() -> {
+                onlineBusy = false;
+                if (userStopped) {
+                    showSolution(getString(R.string.ai_empty_reply));
+                } else if (failure != null) {
+                    working = false;
+                    resetAskUi(getString(R.string.ai_error) + ": " + failure);
+                } else {
+                    showSolution(shown);
+                }
+            });
+        });
+    }
+
+    private void askOnline(final String problem, final String exact) {
+        onlineBusy = true;
+        working = true;
+        final String url = store.getOnlineUrl();
+        final String key = store.getOnlineKey();
+        final String model = store.getOnlineModel();
+        final String system = getString(R.string.ai_online_system);
+        final String prompt = buildPrompt(problem, exact);
+        final TextView body = activeBody;
+        final LinearLayout bubble = activeBubble;
+        io.execute(() -> {
+            String reply = null;
+            String err = null;
+            try {
+                reply = online.chat(url, key, model, system, prompt, 500);
+            } catch (Throwable t) {
+                err = t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage();
+            }
+            final String r = reply;
+            final String failure = err;
+            runOnUiThread(() -> {
+                onlineBusy = false;
+                working = false;
+                if (failure != null && !userStopped) {
+                    failAnswer(body, failure);
+                    return;
+                }
+                if (r != null && !userStopped) output.append(r);
+                finishAnswer(body, bubble);
+            });
+        });
     }
 
     private void runSolver(final Cmd cmd) {
@@ -1088,7 +1375,7 @@ public final class AiActivity extends AppCompatActivity {
         explain.setFocusable(true);
         explain.setOnClickListener(v -> {
             LocalLlm llm = LocalLlm.get();
-            if (llm.isBusy() || working) return;
+            if (llm.isBusy() || working || onlineBusy) return;
             bubble.removeView(v);
             body.setVisibility(View.VISIBLE);
             activeBubble = bubble;
@@ -1100,7 +1387,7 @@ public final class AiActivity extends AppCompatActivity {
 
     private void startAsk(final String problem, final String exact) {
         final LocalLlm llm = LocalLlm.get();
-        if (llm.isBusy() || working) return;
+        if (llm.isBusy() || working || onlineBusy) return;
         replyArabic = arabicReply(problem);
         output.setLength(0);
         segment.setLength(0);
@@ -1114,6 +1401,15 @@ public final class AiActivity extends AppCompatActivity {
         ui.removeCallbacks(dotsRunnable);
         ui.postDelayed(dotsRunnable, 500);
         scrollToEnd();
+
+        if (engineOnline()) {
+            askOnline(problem, exact);
+            return;
+        }
+        if (!engineLocal()) {
+            resetAskUi(getString(R.string.ai_need_engine));
+            return;
+        }
 
         final boolean tools = conf.tools && exact == null;
         final String prompt = buildPrompt(problem, exact);

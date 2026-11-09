@@ -12,6 +12,10 @@ import java.util.List;
 
 public final class Store {
 
+    public static final int ENGINE_AUTO = 0;
+    public static final int ENGINE_ONLINE = 1;
+    public static final int ENGINE_LOCAL = 2;
+
     private static final String PREFS = "calc_prefs";
     private static final String K_MEMORY = "memory";
     private static final String K_ANGLE = "angle_mode";
@@ -30,6 +34,11 @@ public final class Store {
     private static final String K_AI_URL = "ai_url";
     private static final String K_AI_NAME = "ai_model_name";
     private static final String K_AI_LOW = "ai_low_power";
+    private static final String K_AI_ENGINE = "ai_engine";
+    private static final String K_ON_PROVIDER = "online_provider";
+    private static final String K_ON_KEY = "online_key";
+    private static final String K_ON_MODEL = "online_model";
+    private static final String K_ON_URL = "online_url";
     private static final String K_KEEP_ON = "keep_on";
     private static final String K_PROG_BITS = "prog_bits";
     private static final String K_CONV_CAT = "conv_cat";
@@ -37,9 +46,11 @@ public final class Store {
     private static final int MAX_HISTORY = 200;
 
     private final SharedPreferences prefs;
+    private final SharedPreferences secure;
 
     public Store(Context ctx) {
         prefs = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        secure = ctx.getApplicationContext().getSharedPreferences("calc_secure", Context.MODE_PRIVATE);
     }
 
     public double getMemory() { return Double.longBitsToDouble(prefs.getLong(K_MEMORY, 0L)); }
@@ -77,6 +88,18 @@ public final class Store {
 
     public boolean getAiLowPower() { return prefs.getBoolean(K_AI_LOW, false); }
     public void setAiLowPower(boolean v) { prefs.edit().putBoolean(K_AI_LOW, v).apply(); }
+
+    public int getAiEngine() { return prefs.getInt(K_AI_ENGINE, ENGINE_AUTO); }
+    public void setAiEngine(int e) { prefs.edit().putInt(K_AI_ENGINE, e).apply(); }
+
+    public String getOnlineProvider() { return prefs.getString(K_ON_PROVIDER, "groq"); }
+    public String getOnlineKey() { return secure.getString(K_ON_KEY, ""); }
+    public String getOnlineModel() { return prefs.getString(K_ON_MODEL, ""); }
+    public String getOnlineUrl() { return prefs.getString(K_ON_URL, ""); }
+    public void setOnline(String provider, String key, String model, String url) {
+        secure.edit().putString(K_ON_KEY, key).apply();
+        prefs.edit().putString(K_ON_PROVIDER, provider).putString(K_ON_MODEL, model).putString(K_ON_URL, url).apply();
+    }
 
     public String getAiUrl() { return prefs.getString(K_AI_URL, ""); }
     public void setAiUrl(String u) { prefs.edit().putString(K_AI_URL, u).apply(); }
