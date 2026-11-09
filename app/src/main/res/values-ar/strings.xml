@@ -311,6 +311,8 @@
     <string name="icon_red">أحمر</string>
     <string name="icon_pink">وردي</string>
     <string name="icon_graphite">رمادي</string>
-    <string name="icon_midnight">كحلي</string>
+    <string name="icon_midnight">كلاسيكي</string>
     <string name="icon_gold">ذهبي</string>
+    <string name="mode_menu">الوضع</string>
+    <string name="action_more">المزيد</string>
 </resources>

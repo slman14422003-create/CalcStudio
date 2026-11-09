@@ -312,6 +312,8 @@
     <string name="icon_red">Red</string>
     <string name="icon_pink">Pink</string>
     <string name="icon_graphite">Graphite</string>
-    <string name="icon_midnight">Midnight</string>
+    <string name="icon_midnight">Classic</string>
     <string name="icon_gold">Gold</string>
+    <string name="mode_menu">Mode</string>
+    <string name="action_more">More</string>
 </resources>

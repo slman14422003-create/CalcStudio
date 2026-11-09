@@ -17,4 +17,5 @@
     <attr name="cKeyDigit" format="color" />
     <attr name="cKeyFunction" format="color" />
     <attr name="cKeyOperator" format="color" />
+    <attr name="cCalcBg" format="color" />
 </resources>
