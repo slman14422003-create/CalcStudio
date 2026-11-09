@@ -3,7 +3,6 @@
     android:insetLeft="6dp" android:insetTop="6dp" android:insetRight="6dp" android:insetBottom="6dp">
     <shape android:shape="rectangle">
         <solid android:color="?attr/cSurface" />
-        <stroke android:width="1dp" android:color="?attr/cStrokeSoft" />
-        <corners android:radius="28dp" />
+        <corners android:radius="20dp" />
     </shape>
 </inset>
