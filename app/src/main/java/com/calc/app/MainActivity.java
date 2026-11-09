@@ -337,6 +337,9 @@ public final class MainActivity extends AppCompatActivity {
         displayBox = buildDisplay();
         displayBox.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         col.addView(displayBox);
+        displayBox.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (b - t != ob - ot) sizeResultBox();
+        });
 
         panelContainer = new FrameLayout(this);
         panelContainer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -356,6 +359,9 @@ public final class MainActivity extends AppCompatActivity {
         panelContainer.addView(convPanel);
         panelContainer.addView(advKeypad);
         col.addView(panelContainer);
+        panelContainer.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol || b - t != ob - ot) squareBasic(r - l, b - t);
+        });
 
         contentRoot = col;
         rootFrame = new FrameLayout(this);
@@ -569,7 +575,6 @@ public final class MainActivity extends AppCompatActivity {
         card.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(320)
                 .setInterpolator(new OvershootInterpolator(0.8f)).start();
         scrim.animate().alpha(1f).setDuration(220).start();
-        if (Build.VERSION.SDK_INT >= 31) animateBlur(true);
     }
 
     private void hideMenu(boolean animated) {
@@ -577,10 +582,6 @@ public final class MainActivity extends AppCompatActivity {
         if (ov == null) return;
         menuOverlay = null;
         menuBack.setEnabled(false);
-        if (Build.VERSION.SDK_INT >= 31) {
-            if (animated) animateBlur(false);
-            else clearBlurNow();
-        }
         if (!animated) {
             rootFrame.removeView(ov);
             return;
@@ -681,14 +682,13 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.setGravity(Gravity.END | Gravity.BOTTOM);
         tvResult.setIncludeFontPadding(false);
         tvResult.setText("0");
-        tvResult.setMinHeight(dp(44));
-        tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 88);
+                tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 88);
         tvResult.setMaxLines(1);
         tvResult.setHorizontallyScrolling(true);
         tvResult.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             if (r - l != or - ol || b - t != ob - ot) tvResult.post(this::fitResult);
         });
-        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(112)));
         tvResult.setOnLongClickListener(v -> {
             copyResult();
             return true;
@@ -769,12 +769,13 @@ public final class MainActivity extends AppCompatActivity {
 
     private void fitResult() {
         int avail = tvResult.getWidth() - tvResult.getPaddingLeft() - tvResult.getPaddingRight();
-        int availH = dp(landscape ? 70 : 150);
+        int availH = tvResult.getHeight() - tvResult.getPaddingTop() - tvResult.getPaddingBottom();
+        if (availH <= 0) return;
         CharSequence text = tvResult.getText();
         if (avail <= 0 || text.length() == 0) return;
         TextPaint p = new TextPaint(tvResult.getPaint());
-        float size = spPx(landscape ? 48 : 88);
-        float singleMin = spPx(34);
+        float size = Math.min(spPx(landscape ? 48 : 88), availH / 1.15f);
+        float singleMin = Math.min(spPx(34), size);
         while (size > singleMin) {
             p.setTextSize(size);
             if (p.measureText(text, 0, text.length()) <= avail) break;
@@ -802,6 +803,33 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.setHorizontallyScrolling(false);
         tvResult.setMaxLines(maxLines);
         tvResult.setTextSize(TypedValue.COMPLEX_UNIT_PX, wrapSize);
+    }
+
+    private void sizeResultBox() {
+        if (displayBox == null || tvResult == null) return;
+        int boxH = displayBox.getHeight();
+        if (boxH <= 0) return;
+        int cap = boxH - displayBox.getPaddingTop() - displayBox.getPaddingBottom() - dp(34) - dp(42);
+        int want = Math.max(dp(40), Math.min(dp(landscape ? 64 : 112), cap));
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) tvResult.getLayoutParams();
+        if (lp.height != want) {
+            lp.height = want;
+            tvResult.setLayoutParams(lp);
+        }
+    }
+
+    private void squareBasic(int w, int h) {
+        if (basicKeypad == null || w <= 0 || h <= 0) return;
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) basicKeypad.getLayoutParams();
+        int cell = Math.min((w - lp.leftMargin - lp.rightMargin) / 4, (h - lp.topMargin - lp.bottomMargin) / 5);
+        if (cell <= 0) return;
+        int g = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        if (lp.width != cell * 4 || lp.height != cell * 5 || lp.gravity != g) {
+            lp.width = cell * 4;
+            lp.height = cell * 5;
+            lp.gravity = g;
+            basicKeypad.setLayoutParams(lp);
+        }
     }
 
     private void copyResult() {
