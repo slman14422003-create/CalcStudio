@@ -57,6 +57,7 @@ public final class SolverEngine {
             case "SIMPLIFY": return simplify(c, false);
             case "EXPAND": return simplify(c, true);
             case "FACTOR": return Factor.run(c.expr);
+            case "ARITH": return Arith.run(c.expr, c.raw);
             default: return Solution.fail(c.op, c.raw, "err_unsupported");
         }
     }
