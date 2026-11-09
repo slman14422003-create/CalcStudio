@@ -1,20 +1,28 @@
 package com.calc.app;
 
+import android.animation.ValueAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
+import android.graphics.RenderEffect;
+import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.text.TextPaint;
@@ -26,9 +34,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 
@@ -86,7 +96,6 @@ public final class MainActivity extends AppCompatActivity {
 
     private String currentExpr = "";
 
-    private TextView tvSubtitle;
     private TextView tvExpr;
     private TextView tvResult;
     private TextView tvAngle;
@@ -96,11 +105,34 @@ public final class MainActivity extends AppCompatActivity {
     private HorizontalScrollView exprScroll;
     private View displayBox;
 
-    private LinearLayout navBar;
-    private final View[] navItems = new View[5];
-    private final ImageView[] navIcons = new ImageView[5];
-    private final TextView[] navLabels = new TextView[5];
+    private static final int[] TAB_ICONS = {
+            R.drawable.ic_nav_basic, R.drawable.ic_nav_sci, R.drawable.ic_nav_prog,
+            R.drawable.ic_nav_conv, R.drawable.ic_nav_adv
+    };
+
+    private FrameLayout rootFrame;
+    private View contentRoot;
+    private FrameLayout menuOverlay;
+    private OnBackPressedCallback menuBack;
+    private ValueAnimator blurAnim;
+    private float currentBlur = 0f;
+    private TextView tvModeLabel;
+    private ImageView ivModeIcon;
     private String[] tabLabels;
+
+    private static final class PopItem {
+        final int iconRes;
+        final String label;
+        final boolean checked;
+        final Runnable action;
+
+        PopItem(int iconRes, String label, boolean checked, Runnable action) {
+            this.iconRes = iconRes;
+            this.label = label;
+            this.checked = checked;
+            this.action = action;
+        }
+    }
 
     private FrameLayout panelContainer;
     private View basicKeypad, sciKeypad, progPanel, convPanel, advKeypad;
@@ -191,7 +223,18 @@ public final class MainActivity extends AppCompatActivity {
             }
         });
 
+        menuBack = new OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() { hideMenu(true); }
+        };
+        getOnBackPressedDispatcher().addCallback(this, menuBack);
+
         buildUi();
+        try {
+            getWindow().setStatusBarColor(c(R.attr.cCalcBg));
+            getWindow().setNavigationBarColor(c(R.attr.cCalcBg));
+        } catch (Exception ignored) {
+        }
         if (savedInstanceState != null) restoreState(savedInstanceState);
         switchTab(currentTab);
         updateAngleLabel();
@@ -269,7 +312,7 @@ public final class MainActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         landscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE;
-        applyNavLayout();
+        hideMenu(false);
         applyWeights(currentTab);
     }
 
@@ -279,17 +322,21 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- root layout ----------
 
     private void buildUi() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(c(R.attr.cBg));
-        root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        root.setFitsSystemWindows(true);
+        tabLabels = new String[]{
+                getString(R.string.tab_basic), getString(R.string.tab_sci), getString(R.string.tab_prog),
+                getString(R.string.tab_conv), getString(R.string.tab_adv)
+        };
 
-        root.addView(buildTopBar());
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        col.setFitsSystemWindows(true);
+
+        col.addView(buildTopBar());
 
         displayBox = buildDisplay();
         displayBox.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        root.addView(displayBox);
+        col.addView(displayBox);
 
         panelContainer = new FrameLayout(this);
         panelContainer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -308,15 +355,19 @@ public final class MainActivity extends AppCompatActivity {
         panelContainer.addView(progPanel);
         panelContainer.addView(convPanel);
         panelContainer.addView(advKeypad);
-        root.addView(panelContainer);
+        col.addView(panelContainer);
 
-        root.addView(buildNavBar());
-        setContentView(root);
+        contentRoot = col;
+        rootFrame = new FrameLayout(this);
+        rootFrame.setBackgroundColor(c(R.attr.cCalcBg));
+        rootFrame.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        rootFrame.addView(col);
+        setContentView(rootFrame);
     }
 
     private FrameLayout.LayoutParams panelLp() {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        lp.setMargins(dp(12), dp(2), dp(12), dp(4));
+        lp.setMargins(dp(14), dp(2), dp(14), dp(10));
         return lp;
     }
 
@@ -326,133 +377,249 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(16), dp(8), dp(16), dp(2));
+        bar.setPadding(dp(16), dp(8), dp(16), dp(4));
         bar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        final LinearLayout pill = new LinearLayout(this);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setBackgroundResource(R.drawable.bg_mode_pill);
+        pill.setPaddingRelative(dp(14), 0, dp(10), 0);
+        pill.setClickable(true);
+        pill.setFocusable(true);
+        pill.setContentDescription(getString(R.string.mode_menu));
+
+        ivModeIcon = new ImageView(this);
+        ivModeIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ivModeIcon.setImageTintList(ColorStateList.valueOf(c(R.attr.cTextPrimary)));
+        ivModeIcon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        pill.addView(ivModeIcon, new LinearLayout.LayoutParams(dp(20), dp(20)));
+
+        tvModeLabel = new TextView(this);
+        tvModeLabel.setTextSize(16);
+        tvModeLabel.setSingleLine(true);
+        tvModeLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        tvModeLabel.setTextColor(c(R.attr.cTextPrimary));
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tlp.setMarginStart(dp(8));
+        pill.addView(tvModeLabel, tlp);
+
+        ImageView chev = new ImageView(this);
+        chev.setImageResource(R.drawable.ic_chevron_updown);
+        chev.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        chev.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(16), dp(16));
+        clp.setMarginStart(dp(2));
+        pill.addView(chev, clp);
+
+        pill.setOnClickListener(v -> showModeMenu(pill));
+        bar.addView(pill, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
+
+        View spacer = new View(this);
+        bar.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
 
         ImageButton btnHistory = iconButton(R.drawable.ic_history);
         btnHistory.setContentDescription(getString(R.string.action_history));
         btnHistory.setOnClickListener(v -> historyLauncher.launch(new Intent(this, HistoryActivity.class)));
         bar.addView(btnHistory);
 
-        LinearLayout titleBox = new LinearLayout(this);
-        titleBox.setOrientation(LinearLayout.VERTICAL);
-        titleBox.setGravity(Gravity.CENTER);
-        titleBox.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        TextView title = new TextView(this);
-        title.setText(R.string.app_name);
-        title.setTextSize(17);
-        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        title.setTextColor(c(R.attr.cTextPrimary));
-        title.setGravity(Gravity.CENTER);
-        title.setSingleLine(true);
-        titleBox.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        tvSubtitle = new TextView(this);
-        tvSubtitle.setTextSize(12);
-        tvSubtitle.setLetterSpacing(0.04f);
-        tvSubtitle.setTextColor(c(R.attr.cAccentText));
-        tvSubtitle.setGravity(Gravity.CENTER);
-        tvSubtitle.setSingleLine(true);
-        titleBox.addView(tvSubtitle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        bar.addView(titleBox);
-
-        ImageButton btnAi = iconButton(R.drawable.ic_ai);
-        btnAi.setContentDescription(getString(R.string.ai_title));
-        btnAi.setOnClickListener(v -> {
-            Intent i = new Intent(this, AiActivity.class);
-            String seed = currentExpr.isEmpty() ? "" : autoClose(currentExpr);
-            if (!seed.isEmpty()) i.putExtra(AiActivity.EXTRA_PROBLEM, seed);
-            startActivity(i);
-        });
-        bar.addView(btnAi);
-
-        ImageButton btnSettings = iconButton(R.drawable.ic_settings);
-        btnSettings.setContentDescription(getString(R.string.action_settings));
-        btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        bar.addView(btnSettings);
+        final ImageButton btnMore = iconButton(R.drawable.ic_more);
+        btnMore.setContentDescription(getString(R.string.action_more));
+        btnMore.setOnClickListener(v -> showMoreMenu(btnMore));
+        LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        mlp.setMarginStart(dp(10));
+        bar.addView(btnMore, mlp);
         return bar;
     }
 
     private ImageButton iconButton(int drawableRes) {
         ImageButton b = new ImageButton(this, null, 0, R.style.IconButton);
         b.setImageResource(drawableRes);
-        b.setLayoutParams(new LinearLayout.LayoutParams(dp(42), dp(42)));
+        b.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
         return b;
     }
 
-    // ---------- bottom navigation ----------
+    private void refreshModeButton() {
+        if (tvModeLabel != null) tvModeLabel.setText(tabLabels[currentTab]);
+        if (ivModeIcon != null) ivModeIcon.setImageResource(TAB_ICONS[currentTab]);
+    }
 
-    private View buildNavBar() {
-        navBar = new LinearLayout(this);
-        navBar.setOrientation(LinearLayout.HORIZONTAL);
-        navBar.setBackgroundResource(R.drawable.bg_nav);
-        navBar.setPadding(dp(6), dp(6), dp(6), dp(6));
-        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64));
-        blp.setMargins(dp(12), dp(4), dp(12), dp(10));
-        navBar.setLayoutParams(blp);
+    // ---------- floating iOS-style menu ----------
 
-        tabLabels = new String[]{
-                getString(R.string.tab_basic), getString(R.string.tab_sci), getString(R.string.tab_prog),
-                getString(R.string.tab_conv), getString(R.string.tab_adv)
-        };
-        int[] icons = {R.drawable.ic_nav_basic, R.drawable.ic_nav_sci, R.drawable.ic_nav_prog, R.drawable.ic_nav_conv, R.drawable.ic_nav_adv};
+    private void showModeMenu(View anchor) {
+        List<PopItem> items = new ArrayList<>();
+        for (int i = 0; i < tabLabels.length; i++) {
+            final int tab = i;
+            items.add(new PopItem(TAB_ICONS[i], tabLabels[i], i == currentTab, () -> switchTab(tab)));
+        }
+        showMenu(anchor, items);
+    }
 
-        for (int i = 0; i < 5; i++) {
-            final int tabId = i;
-            LinearLayout item = new LinearLayout(this);
-            item.setOrientation(LinearLayout.VERTICAL);
-            item.setGravity(Gravity.CENTER);
-            item.setClickable(true);
-            item.setFocusable(true);
-            item.setContentDescription(tabLabels[i]);
-            item.setOnClickListener(v -> switchTab(tabId));
+    private void showMoreMenu(View anchor) {
+        List<PopItem> items = new ArrayList<>();
+        items.add(new PopItem(R.drawable.ic_ai, getString(R.string.ai_title), false, () -> {
+            Intent i = new Intent(this, AiActivity.class);
+            String seed = currentExpr.isEmpty() ? "" : autoClose(currentExpr);
+            if (!seed.isEmpty()) i.putExtra(AiActivity.EXTRA_PROBLEM, seed);
+            startActivity(i);
+        }));
+        items.add(new PopItem(R.drawable.ic_settings, getString(R.string.action_settings), false,
+                () -> startActivity(new Intent(this, SettingsActivity.class))));
+        showMenu(anchor, items);
+    }
 
-            ImageView icon = new ImageView(this);
-            icon.setImageResource(icons[i]);
-            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            item.addView(icon, new LinearLayout.LayoutParams(dp(22), dp(22)));
+    private void showMenu(View anchor, List<PopItem> items) {
+        if (menuOverlay != null) hideMenu(false);
+        vibrate(anchor);
+
+        final FrameLayout overlay = new FrameLayout(this);
+        overlay.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        final View scrim = new View(this);
+        scrim.setBackgroundColor(getColor(R.color.scrim));
+        scrim.setAlpha(0f);
+        scrim.setOnClickListener(v -> hideMenu(true));
+        overlay.addView(scrim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        final LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_menu);
+        card.setClipToOutline(true);
+        card.setElevation(dp(24));
+
+        boolean anyChecked = false;
+        for (PopItem it : items) if (it.checked) anyChecked = true;
+
+        for (int i = 0; i < items.size(); i++) {
+            final PopItem it = items.get(i);
+            if (i > 0) {
+                View sep = new View(this);
+                sep.setBackgroundColor(getColor(R.color.menu_sep));
+                card.addView(sep, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+            }
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setBackgroundResource(R.drawable.bg_menu_item);
+            row.setPaddingRelative(dp(16), 0, dp(16), 0);
+            row.setClickable(true);
+            row.setFocusable(true);
+
+            if (anyChecked) {
+                ImageView check = new ImageView(this);
+                check.setImageResource(R.drawable.ic_dialog_check);
+                check.setImageTintList(ColorStateList.valueOf(c(R.attr.cTextPrimary)));
+                check.setVisibility(it.checked ? View.VISIBLE : View.INVISIBLE);
+                check.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+                LinearLayout.LayoutParams ckp = new LinearLayout.LayoutParams(dp(20), dp(20));
+                ckp.setMarginEnd(dp(10));
+                row.addView(check, ckp);
+            }
 
             TextView label = new TextView(this);
-            label.setText(tabLabels[i]);
-            label.setGravity(Gravity.CENTER);
-            label.setTextSize(11);
-            Ui.autoFit(label, 8, 11);
-            LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14));
-            llp.topMargin = dp(2);
-            llp.setMarginStart(dp(2));
-            llp.setMarginEnd(dp(2));
-            item.addView(label, llp);
+            label.setText(it.label);
+            label.setTextSize(17);
+            label.setSingleLine(true);
+            label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            label.setTextColor(c(R.attr.cTextPrimary));
+            row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-            ilp.setMargins(dp(2), 0, dp(2), 0);
-            navBar.addView(item, ilp);
-            navItems[i] = item;
-            navIcons[i] = icon;
-            navLabels[i] = label;
+            ImageView icon = new ImageView(this);
+            icon.setImageResource(it.iconRes);
+            icon.setImageTintList(ColorStateList.valueOf(c(R.attr.cTextPrimary)));
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LinearLayout.LayoutParams icp = new LinearLayout.LayoutParams(dp(22), dp(22));
+            icp.setMarginStart(dp(12));
+            row.addView(icon, icp);
+
+            row.setOnClickListener(v -> {
+                hideMenu(true);
+                it.action.run();
+            });
+            card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
         }
-        applyNavLayout();
-        return navBar;
+
+        int[] al = new int[2];
+        int[] rl = new int[2];
+        anchor.getLocationInWindow(al);
+        rootFrame.getLocationInWindow(rl);
+        int ax = al[0] - rl[0];
+        int ay = al[1] - rl[1];
+        int cw = dp(240);
+        boolean alignRight = ax + anchor.getWidth() / 2 > rootFrame.getWidth() / 2;
+        int x = alignRight ? ax + anchor.getWidth() - cw : ax;
+        x = Math.max(dp(12), Math.min(rootFrame.getWidth() - cw - dp(12), x));
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(cw, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.TOP | Gravity.LEFT;
+        lp.leftMargin = x;
+        lp.topMargin = ay + anchor.getHeight() + dp(8);
+        overlay.addView(card, lp);
+
+        menuOverlay = overlay;
+        menuBack.setEnabled(true);
+        rootFrame.addView(overlay);
+
+        card.setPivotX(alignRight ? cw : 0);
+        card.setPivotY(0);
+        card.setScaleX(0.55f);
+        card.setScaleY(0.55f);
+        card.setAlpha(0f);
+        card.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(320)
+                .setInterpolator(new OvershootInterpolator(0.8f)).start();
+        scrim.animate().alpha(1f).setDuration(220).start();
+        if (Build.VERSION.SDK_INT >= 31) animateBlur(true);
     }
 
-    private void applyNavLayout() {
-        if (navBar == null) return;
-        ViewGroup.LayoutParams lp = navBar.getLayoutParams();
-        lp.height = dp(landscape ? 46 : 64);
-        navBar.setLayoutParams(lp);
-        for (TextView t : navLabels) t.setVisibility(landscape ? View.GONE : View.VISIBLE);
+    private void hideMenu(boolean animated) {
+        final FrameLayout ov = menuOverlay;
+        if (ov == null) return;
+        menuOverlay = null;
+        menuBack.setEnabled(false);
+        if (Build.VERSION.SDK_INT >= 31) {
+            if (animated) animateBlur(false);
+            else clearBlurNow();
+        }
+        if (!animated) {
+            rootFrame.removeView(ov);
+            return;
+        }
+        View scrim = ov.getChildAt(0);
+        View card = ov.getChildAt(1);
+        scrim.animate().alpha(0f).setDuration(180).start();
+        card.animate().alpha(0f).scaleX(0.92f).scaleY(0.92f).setDuration(160)
+                .withEndAction(() -> rootFrame.removeView(ov)).start();
     }
 
-    private void refreshNav() {
-        for (int i = 0; i < 5; i++) {
-            boolean sel = i == currentTab;
-            navItems[i].setBackgroundResource(sel ? R.drawable.bg_nav_item_selected : R.drawable.bg_nav_item_idle);
-            int color = sel ? c(R.attr.cAccentText) : c(R.attr.cTextSecondary);
-            navIcons[i].setImageTintList(ColorStateList.valueOf(color));
-            navLabels[i].setTextColor(color);
-            navLabels[i].setTypeface(Typeface.create(sel ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+    @RequiresApi(31)
+    private void animateBlur(boolean on) {
+        if (blurAnim != null) blurAnim.cancel();
+        final float to = on ? 14f : 0f;
+        blurAnim = ValueAnimator.ofFloat(currentBlur, to);
+        blurAnim.setDuration(260);
+        blurAnim.addUpdateListener(a -> {
+            currentBlur = (Float) a.getAnimatedValue();
+            applyBlur();
+        });
+        blurAnim.start();
+    }
+
+    @RequiresApi(31)
+    private void applyBlur() {
+        if (contentRoot == null) return;
+        if (currentBlur < 0.5f) {
+            contentRoot.setRenderEffect(null);
+        } else {
+            contentRoot.setRenderEffect(RenderEffect.createBlurEffect(currentBlur, currentBlur, Shader.TileMode.CLAMP));
         }
+    }
+
+    @RequiresApi(31)
+    private void clearBlurNow() {
+        if (blurAnim != null) blurAnim.cancel();
+        currentBlur = 0f;
+        applyBlur();
     }
 
     // ---------- display ----------
@@ -460,11 +627,8 @@ public final class MainActivity extends AppCompatActivity {
     private View buildDisplay() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundResource(R.drawable.bg_display);
-        box.setPadding(dp(18), dp(12), dp(18), dp(14));
-        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        blp.setMargins(dp(12), dp(6), dp(12), dp(8));
-        box.setLayoutParams(blp);
+        box.setPadding(dp(26), dp(2), dp(26), dp(8));
+        box.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         LinearLayout indicators = new LinearLayout(this);
         indicators.setOrientation(LinearLayout.HORIZONTAL);
@@ -484,17 +648,10 @@ public final class MainActivity extends AppCompatActivity {
         indicators.addView(tvShiftDot);
         indicators.addView(tvHypDot);
         indicators.addView(tvMemDot);
+        box.addView(indicators);
 
         View spacer = new View(this);
-        indicators.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        ImageButton copy = new ImageButton(this, null, 0, R.style.IconButton);
-        copy.setImageResource(R.drawable.ic_copy);
-        copy.setImageTintList(ColorStateList.valueOf(c(R.attr.cTextSecondary)));
-        copy.setContentDescription(getString(R.string.action_copy));
-        copy.setOnClickListener(v -> copyResult());
-        indicators.addView(copy, new LinearLayout.LayoutParams(dp(34), dp(34)));
-        box.addView(indicators);
+        box.addView(spacer, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         exprScroll = new HorizontalScrollView(this);
         exprScroll.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
@@ -505,9 +662,9 @@ public final class MainActivity extends AppCompatActivity {
         esLp.topMargin = dp(4);
         exprScroll.setLayoutParams(esLp);
         tvExpr = new TextView(this);
-        tvExpr.setTextSize(24);
+        tvExpr.setTextSize(28);
         tvExpr.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-        tvExpr.setMinHeight(dp(34));
+        tvExpr.setMinHeight(dp(38));
         tvExpr.setTextColor(c(R.attr.cTextSecondary));
         tvExpr.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         tvExpr.setTextDirection(View.TEXT_DIRECTION_LTR);
@@ -521,19 +678,36 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         tvResult.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         tvResult.setTextDirection(View.TEXT_DIRECTION_LTR);
-        tvResult.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        tvResult.setGravity(Gravity.END | Gravity.BOTTOM);
+        tvResult.setIncludeFontPadding(false);
         tvResult.setText("0");
         tvResult.setMinHeight(dp(44));
-        tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 72);
+        tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 88);
         tvResult.setMaxLines(1);
         tvResult.setHorizontallyScrolling(true);
         tvResult.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             if (r - l != or - ol || b - t != ob - ot) tvResult.post(this::fitResult);
         });
-        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tvResult.setOnLongClickListener(v -> {
             copyResult();
             return true;
+        });
+        final float[] down = new float[2];
+        tvResult.setOnTouchListener((v, e) -> {
+            if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                down[0] = e.getX();
+                down[1] = e.getY();
+            } else if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+                float dx = e.getX() - down[0];
+                float dy = e.getY() - down[1];
+                if (Math.abs(dx) > dp(48) && Math.abs(dx) > Math.abs(dy) * 2) {
+                    vibrate(v);
+                    backspace();
+                    return true;
+                }
+            }
+            return false;
         });
         box.addView(tvResult);
         return box;
@@ -542,13 +716,13 @@ public final class MainActivity extends AppCompatActivity {
     private TextView indicatorText(String s) {
         TextView t = new TextView(this);
         t.setText(s);
-        t.setTextSize(11);
+        t.setTextSize(12);
         t.setLetterSpacing(0.06f);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         t.setGravity(Gravity.CENTER);
         t.setClickable(true);
         t.setFocusable(true);
-        t.setPadding(dp(12), dp(6), dp(12), dp(6));
+        t.setPadding(dp(10), dp(5), dp(10), dp(5));
         Ui.setTagState(t, false);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMarginEnd(dp(6));
@@ -579,12 +753,12 @@ public final class MainActivity extends AppCompatActivity {
         int avail = exprScroll.getWidth() - exprScroll.getPaddingLeft() - exprScroll.getPaddingRight();
         CharSequence text = tvExpr.getText();
         if (avail <= 0 || text.length() == 0) {
-            tvExpr.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+            tvExpr.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
             return;
         }
         TextPaint p = new TextPaint(tvExpr.getPaint());
-        float size = spPx(24);
-        float min = spPx(15);
+        float size = spPx(28);
+        float min = spPx(16);
         while (size > min) {
             p.setTextSize(size);
             if (p.measureText(text, 0, text.length()) <= avail) break;
@@ -595,11 +769,11 @@ public final class MainActivity extends AppCompatActivity {
 
     private void fitResult() {
         int avail = tvResult.getWidth() - tvResult.getPaddingLeft() - tvResult.getPaddingRight();
-        int availH = tvResult.getHeight() - tvResult.getPaddingTop() - tvResult.getPaddingBottom();
+        int availH = dp(landscape ? 70 : 150);
         CharSequence text = tvResult.getText();
         if (avail <= 0 || text.length() == 0) return;
         TextPaint p = new TextPaint(tvResult.getPaint());
-        float size = spPx(72);
+        float size = spPx(landscape ? 48 : 88);
         float singleMin = spPx(34);
         while (size > singleMin) {
             p.setTextSize(size);
@@ -653,7 +827,6 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private int styleFor(String k) {
-        if (k.equals("AC")) return R.style.KeyDanger;
         if (k.equals("=")) return R.style.KeyEquals;
         if (isDigitKey(k)) return R.style.KeyDigit;
         if (isOperatorKey(k)) return R.style.KeyOperator;
@@ -673,6 +846,7 @@ public final class MainActivity extends AppCompatActivity {
             int style = styleFor(k);
             final Button b = Ui.key(this, k, style, w, gapDp);
             Ui.styleKey(b, style, compact);
+            decorateKey(b, k, w, compact);
             b.setOnClickListener(v -> { vibrate(b); handler.onKey(k, b); });
             if (k.equals("DEL")) {
                 b.setOnLongClickListener(v -> { vibrate(b); handler.onKey("DEL_LONG", b); return true; });
@@ -689,6 +863,27 @@ public final class MainActivity extends AppCompatActivity {
         return row;
     }
 
+    private void decorateKey(Button b, String k, float weight, boolean compact) {
+        if (k.equals("DEL")) {
+            Drawable icon = getDrawable(R.drawable.ic_delete);
+            if (icon != null) {
+                icon = icon.mutate();
+                icon.setTint(getColor(R.color.key_function_text));
+                Drawable bg = b.getBackground().getConstantState().newDrawable(b.getResources()).mutate();
+                LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, icon});
+                int size = dp(compact ? 22 : 28);
+                ld.setLayerSize(1, size, size);
+                ld.setLayerGravity(1, Gravity.CENTER);
+                b.setBackground(ld);
+                b.setText("");
+                b.setContentDescription("DEL");
+            }
+        } else if (k.equals("0") && weight > 1f) {
+            b.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            b.setPaddingRelative(dp(compact ? 22 : 34), 0, 0, 0);
+        }
+    }
+
     private void refreshOperatorHighlight() {
         String last = "";
         if (!lastWasResult && !currentExpr.isEmpty()) last = currentExpr.substring(currentExpr.length() - 1);
@@ -696,7 +891,7 @@ public final class MainActivity extends AppCompatActivity {
             boolean on = e.getKey().equals(last);
             for (Button b : e.getValue()) {
                 b.setBackgroundResource(on ? R.drawable.key_operator_active_bg : R.drawable.key_operator_bg);
-                b.setTextColor(on ? getColor(R.color.on_accent) : getColor(R.color.key_op_soft_text));
+                b.setTextColor(on ? getColor(R.color.key_op_active_text) : getColor(R.color.key_operator_text));
             }
         }
     }
@@ -722,10 +917,10 @@ public final class MainActivity extends AppCompatActivity {
                 {"7", "8", "9", "\u00d7"},
                 {"4", "5", "6", "\u2212"},
                 {"1", "2", "3", "+"},
-                {"0", ".", "DEL", "="},
         };
         KeyHandler h = (k, b) -> handleBasicKey(k);
-        for (String[] r : rows) addKeys(col, r, null, 1f, false, 4, null, h);
+        for (String[] r : rows) addKeys(col, r, null, 1f, false, 6, null, h);
+        addKeys(col, new String[]{"0", ".", "="}, new float[]{2f, 1f, 1f}, 1f, false, 6, null, h);
         return col;
     }
 
@@ -763,20 +958,20 @@ public final class MainActivity extends AppCompatActivity {
         col.setVisibility(View.GONE);
 
         KeyHandler h = (k, b) -> handleSciKey(k);
-        addKeys(col, new String[]{"sin", "cos", "tan", "log", "ln"}, null, 0.85f, true, 3, sciKeys, h);
-        addKeys(col, new String[]{"x\u00b2", "\u221a", "x\u02b8", "\u02e3\u221ay", "n!"}, null, 0.85f, true, 3, sciKeys, h);
-        addKeys(col, new String[]{"(", ")", "\u03c0", "e", "1/x"}, null, 0.85f, true, 3, sciKeys, h);
-        addKeys(col, new String[]{"\u221b", "%", "nPr", "nCr", "\u00b1"}, null, 0.85f, true, 3, sciKeys, h);
-        addKeys(col, new String[]{"MC", "MR", "M+", "M\u2212", "Ans"}, null, 0.85f, true, 3, sciKeys, h);
+        addKeys(col, new String[]{"sin", "cos", "tan", "log", "ln"}, null, 0.85f, true, 4, sciKeys, h);
+        addKeys(col, new String[]{"x\u00b2", "\u221a", "x\u02b8", "\u02e3\u221ay", "n!"}, null, 0.85f, true, 4, sciKeys, h);
+        addKeys(col, new String[]{"(", ")", "\u03c0", "e", "1/x"}, null, 0.85f, true, 4, sciKeys, h);
+        addKeys(col, new String[]{"\u221b", "%", "nPr", "nCr", "\u00b1"}, null, 0.85f, true, 4, sciKeys, h);
+        addKeys(col, new String[]{"MC", "MR", "M+", "M\u2212", "Ans"}, null, 0.85f, true, 4, sciKeys, h);
 
         View gap = new View(this);
         gap.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(6)));
         col.addView(gap);
 
-        addKeys(col, new String[]{"7", "8", "9", "DEL", "AC"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"4", "5", "6", "\u00d7", "\u00f7"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"1", "2", "3", "+", "\u2212"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"0", ".", "EXP", "e\u02e3", "="}, null, 1f, true, 3, sciKeys, h);
+        addKeys(col, new String[]{"7", "8", "9", "DEL", "AC"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"4", "5", "6", "\u00d7", "\u00f7"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"1", "2", "3", "+", "\u2212"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"0", ".", "EXP", "e\u02e3", "="}, null, 1f, true, 4, sciKeys, h);
         return col;
     }
 
@@ -902,11 +1097,11 @@ public final class MainActivity extends AppCompatActivity {
         col.addView(gap);
 
         KeyHandler h = (k, b) -> handleAdvKey(k);
-        addKeys(col, new String[]{"(", ")", ",", "DEL", "AC"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"7", "8", "9", "\u00f7", "\u00d7"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"4", "5", "6", "\u2212", "+"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"1", "2", "3", "\u03c0", "e"}, null, 1f, true, 3, null, h);
-        addKeys(col, new String[]{"0", ".", "Ans", "="}, new float[]{1f, 1f, 1f, 2f}, 1f, true, 3, null, h);
+        addKeys(col, new String[]{"(", ")", ",", "DEL", "AC"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"7", "8", "9", "\u00f7", "\u00d7"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"4", "5", "6", "\u2212", "+"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"1", "2", "3", "\u03c0", "e"}, null, 1f, true, 4, null, h);
+        addKeys(col, new String[]{"0", ".", "Ans", "="}, new float[]{1f, 1f, 1f, 2f}, 1f, true, 4, null, h);
 
         showAdvCategory(advCategory);
         return col;
@@ -916,7 +1111,7 @@ public final class MainActivity extends AppCompatActivity {
         advCategory = idx;
         advGrid.removeAllViews();
         KeyHandler h = (k, b) -> handleAdvKey(k);
-        for (String[] row : ADV_CATS[idx]) addKeys(advGrid, row, null, 1f, true, 3, null, h);
+        for (String[] row : ADV_CATS[idx]) addKeys(advGrid, row, null, 1f, true, 4, null, h);
         for (int i = 0; i < advChips.length; i++) Ui.setChipState(advChips[i], i == idx);
     }
 
@@ -1156,8 +1351,7 @@ public final class MainActivity extends AppCompatActivity {
         boolean showDisplay = tab != TAB_PROG && tab != TAB_CONV;
         displayBox.setVisibility(showDisplay ? View.VISIBLE : View.GONE);
         applyWeights(tab);
-        tvSubtitle.setText(tabLabels[tab]);
-        refreshNav();
+        refreshModeButton();
         if (tab == TAB_PROG) updateProgDisplay();
         if (tab == TAB_CONV) doConvert();
         refreshIndicators();
@@ -1176,10 +1370,10 @@ public final class MainActivity extends AppCompatActivity {
             panelWeight = 3f;
         } else if (tab == TAB_BASIC) {
             displayWeight = 1.0f;
-            panelWeight = 2.3f;
+            panelWeight = 2.6f;
         } else if (tab == TAB_SCI || tab == TAB_ADV) {
             displayWeight = 1.0f;
-            panelWeight = 3.1f;
+            panelWeight = 3.5f;
         } else {
             displayWeight = 0f;
             panelWeight = 1f;
@@ -1286,7 +1480,6 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private int progStyle(String k) {
-        if (k.equals("AC")) return R.style.KeyDanger;
         if (k.equals("=")) return R.style.KeyEquals;
         if (isOperatorKey(k)) return R.style.KeyOperator;
         if (k.matches("[0-9A-F]")) return R.style.KeyDigit;
@@ -1302,6 +1495,7 @@ public final class MainActivity extends AppCompatActivity {
             final Button b = Ui.key(this, k, style, w, 3);
             Ui.styleKey(b, style, true);
             if (style == R.style.KeyDigit && !k.matches("[0-9]")) b.setTextSize(20);
+            decorateKey(b, k, w, true);
             b.setOnClickListener(v -> { vibrate(b); handleProgKey(k); });
             if (k.equals("DEL")) {
                 b.setOnLongClickListener(v -> { vibrate(b); progClear(); return true; });
@@ -1573,10 +1767,10 @@ public final class MainActivity extends AppCompatActivity {
         col.addView(keys, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         keys.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         KeyHandler h = (k, b) -> handleConvKey(k);
-        addKeys(keys, new String[]{"7", "8", "9", "AC"}, null, 1f, true, 3, null, h);
-        addKeys(keys, new String[]{"4", "5", "6", "DEL"}, null, 1f, true, 3, null, h);
-        addKeys(keys, new String[]{"1", "2", "3", "\u00b1"}, null, 1f, true, 3, null, h);
-        addKeys(keys, new String[]{"0", ".", "\u21c5"}, new float[]{2f, 1f, 1f}, 1f, true, 3, null, h);
+        addKeys(keys, new String[]{"7", "8", "9", "AC"}, null, 1f, true, 4, null, h);
+        addKeys(keys, new String[]{"4", "5", "6", "DEL"}, null, 1f, true, 4, null, h);
+        addKeys(keys, new String[]{"1", "2", "3", "\u00b1"}, null, 1f, true, 4, null, h);
+        addKeys(keys, new String[]{"0", ".", "\u21c5"}, new float[]{2f, 1f, 1f}, 1f, true, 4, null, h);
 
         selectCategory(convCategory);
         return col;

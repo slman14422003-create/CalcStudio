@@ -90,15 +90,15 @@ public final class Ui {
 
     public static void styleKey(Button b, int styleResId, boolean compact) {
         if (styleResId == R.style.KeyFunction) {
-            autoFit(b, compact ? 10 : 12, compact ? 16 : 20);
+            autoFit(b, compact ? 10 : 14, compact ? 16 : 28);
         } else if (styleResId == R.style.KeyDigit) {
-            b.setTextSize(compact ? 24 : 30);
+            b.setTextSize(compact ? 24 : 34);
         } else if (styleResId == R.style.KeyOperator) {
-            b.setTextSize(compact ? 26 : 32);
+            b.setTextSize(compact ? 28 : 40);
         } else if (styleResId == R.style.KeyEquals) {
-            b.setTextSize(compact ? 26 : 32);
+            b.setTextSize(compact ? 28 : 40);
         } else if (styleResId == R.style.KeyDanger) {
-            b.setTextSize(compact ? 18 : 22);
+            b.setTextSize(compact ? 18 : 28);
         }
     }
 
