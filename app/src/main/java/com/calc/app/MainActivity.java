@@ -331,6 +331,8 @@ public final class MainActivity extends AppCompatActivity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         col.setFitsSystemWindows(true);
+        col.setClipChildren(false);
+        col.setClipToPadding(false);
 
         col.addView(buildTopBar());
 
@@ -629,6 +631,8 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(2), dp(20), dp(8));
+        box.setClipChildren(false);
+        box.setClipToPadding(false);
         box.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         LinearLayout indicators = new LinearLayout(this);
@@ -659,6 +663,8 @@ public final class MainActivity extends AppCompatActivity {
         exprScroll.setHorizontalScrollBarEnabled(false);
         exprScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         exprScroll.setFillViewport(true);
+        exprScroll.setClipChildren(false);
+        exprScroll.setClipToPadding(false);
         LinearLayout.LayoutParams esLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         esLp.topMargin = dp(4);
         exprScroll.setLayoutParams(esLp);
@@ -671,7 +677,7 @@ public final class MainActivity extends AppCompatActivity {
         tvExpr.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvExpr.setSingleLine(true);
         tvExpr.setIncludeFontPadding(false);
-        tvExpr.setPadding(dp(6), 0, dp(6), 0);
+        tvExpr.setPadding(dp(10), dp(2), dp(10), dp(2));
         tvExpr.setText("");
         exprScroll.addView(tvExpr, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         exprScroll.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
@@ -689,7 +695,7 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.setTextDirection(View.TEXT_DIRECTION_LTR);
         tvResult.setGravity(Gravity.END | Gravity.BOTTOM);
         tvResult.setIncludeFontPadding(false);
-        tvResult.setPadding(dp(6), 0, dp(6), 0);
+        tvResult.setPadding(dp(12), dp(8), dp(12), dp(8));
         tvResult.setText("0");
                 tvResult.setTextSize(TypedValue.COMPLEX_UNIT_SP, 88);
         tvResult.setMaxLines(1);
@@ -697,7 +703,7 @@ public final class MainActivity extends AppCompatActivity {
         tvResult.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             if (r - l != or - ol || b - t != ob - ot) tvResult.post(this::fitResult);
         });
-        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(112)));
+        tvResult.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(128)));
         tvResult.setOnLongClickListener(v -> {
             copyResult();
             return true;
@@ -793,7 +799,7 @@ public final class MainActivity extends AppCompatActivity {
         CharSequence text = tvResult.getText();
         if (avail <= 0 || text.length() == 0) return;
         TextPaint p = new TextPaint(tvResult.getPaint());
-        float size = Math.min(spPx(landscape ? 48 : 88), availH / 1.15f);
+        float size = Math.min(spPx(landscape ? 48 : 88), availH / 1.35f);
         float singleMin = Math.min(spPx(34), size);
         while (size > singleMin) {
             p.setTextSize(size);
@@ -813,7 +819,7 @@ public final class MainActivity extends AppCompatActivity {
         while (true) {
             p.setTextSize(wrapSize);
             float lineH = p.getFontMetrics().bottom - p.getFontMetrics().top;
-            int fit = Math.max(1, (int) (availH / lineH));
+            int fit = Math.max(1, (int) (availH / (lineH * 1.1f)));
             int need = (int) Math.ceil(p.measureText(text, 0, text.length()) / (float) avail) + 1;
             maxLines = fit;
             if (need <= fit || wrapSize <= wrapMin) break;
@@ -829,7 +835,7 @@ public final class MainActivity extends AppCompatActivity {
         int boxH = displayBox.getHeight();
         if (boxH <= 0) return;
         int cap = boxH - displayBox.getPaddingTop() - displayBox.getPaddingBottom() - dp(34) - dp(42);
-        int want = Math.max(dp(40), Math.min(dp(landscape ? 64 : 112), cap));
+        int want = Math.max(dp(40), Math.min(dp(landscape ? 72 : 128), cap));
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) tvResult.getLayoutParams();
         if (lp.height != want) {
             lp.height = want;
