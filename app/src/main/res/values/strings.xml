@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SEMO Calculator</string>
+    <string name="app_name">Calculator</string>
     <string name="tab_basic">Basic</string>
     <string name="tab_sci">Scientific</string>
     <string name="tab_prog">Programmer</string>
@@ -316,4 +316,28 @@
     <string name="icon_gold">Gold</string>
     <string name="mode_menu">Mode</string>
     <string name="action_more">More</string>
+    <string name="sv_a_start">Expression: %1$s</string>
+    <string name="sv_a_step">Compute %1$s = %2$s, leaving %3$s</string>
+    <string name="sv_a_stepx">Compute %1$s ≈ %2$s, leaving %3$s</string>
+    <string name="sv_a_last">Compute %1$s = %2$s</string>
+    <string name="sv_a_lastx">Compute %1$s ≈ %2$s</string>
+    <string name="sv_v_arith">matches a direct numeric check</string>
+    <string name="sv_a_rounded">Note: values were rounded to 10 decimal places.</string>
+    <string name="ai_menu_online">Online assistant (free)</string>
+    <string name="ai_menu_local">Local model</string>
+    <string name="ai_online_title">Online assistant</string>
+    <string name="ai_online_desc">Used only for questions the built-in solver cannot understand. Needs internet and a free API key from the provider.</string>
+    <string name="ai_online_key_hint">API key</string>
+    <string name="ai_online_model_hint">Model name</string>
+    <string name="ai_online_url_hint">Endpoint URL (OpenAI compatible)</string>
+    <string name="ai_online_save">Save</string>
+    <string name="ai_online_disable">Turn off</string>
+    <string name="ai_online_get_key">Get a free key</string>
+    <string name="ai_online_saved">Online assistant is on</string>
+    <string name="ai_online_off">Online assistant is off</string>
+    <string name="ai_online_missing">Enter the API key and model first</string>
+    <string name="ai_engine_builtin">Built-in solver · works offline</string>
+    <string name="ai_engine_online">Online · %1$s · %2$s</string>
+    <string name="ai_need_engine">Tip: for free-text questions, turn on the online assistant or add a local model from the ⋮ menu.</string>
+    <string name="ai_online_system" translatable="false">You are a math tutor inside a calculator app. Reply in the language of the user message. Use at most 6 short numbered steps in plain text. Do not use LaTeX or markdown. A verified result, if given, is correct. End with one line: Answer: and the result, translating the word Answer into the language of the user message.</string>
 </resources>

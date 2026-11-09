@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">حاسبة سيمو</string>
+    <string name="app_name">Calculator</string>
     <string name="tab_basic">عادي</string>
     <string name="tab_sci">علمي</string>
     <string name="tab_prog">مبرمج</string>
@@ -315,4 +315,27 @@
     <string name="icon_gold">ذهبي</string>
     <string name="mode_menu">الوضع</string>
     <string name="action_more">المزيد</string>
+    <string name="sv_a_start">التعبير: %1$s</string>
+    <string name="sv_a_step">احسب %1$s = %2$s ليصبح %3$s</string>
+    <string name="sv_a_stepx">احسب %1$s ≈ %2$s ليصبح %3$s</string>
+    <string name="sv_a_last">احسب %1$s = %2$s</string>
+    <string name="sv_a_lastx">احسب %1$s ≈ %2$s</string>
+    <string name="sv_v_arith">يطابق فحصًا عدديًا مباشرًا</string>
+    <string name="sv_a_rounded">ملاحظة: تم تقريب القيم إلى 10 منازل عشرية.</string>
+    <string name="ai_menu_online">المساعد الأونلاين (مجاني)</string>
+    <string name="ai_menu_local">النموذج المحلي</string>
+    <string name="ai_online_title">المساعد الأونلاين</string>
+    <string name="ai_online_desc">يُستخدم فقط للأسئلة التي لا يفهمها الحلّال المدمج. يحتاج إنترنت ومفتاح API مجاني من المزود.</string>
+    <string name="ai_online_key_hint">مفتاح API</string>
+    <string name="ai_online_model_hint">اسم النموذج</string>
+    <string name="ai_online_url_hint">رابط الخدمة (متوافق مع OpenAI)</string>
+    <string name="ai_online_save">حفظ</string>
+    <string name="ai_online_disable">إيقاف</string>
+    <string name="ai_online_get_key">احصل على مفتاح مجاني</string>
+    <string name="ai_online_saved">تم تشغيل المساعد الأونلاين</string>
+    <string name="ai_online_off">تم إيقاف المساعد الأونلاين</string>
+    <string name="ai_online_missing">أدخل مفتاح API واسم النموذج أولًا</string>
+    <string name="ai_engine_builtin">الحلّال المدمج · يعمل بدون إنترنت</string>
+    <string name="ai_engine_online">أونلاين · %1$s · %2$s</string>
+    <string name="ai_need_engine">تلميح: للأسئلة المكتوبة بحرية، فعّل المساعد الأونلاين أو أضف نموذجًا محليًا من قائمة ⋮.</string>
 </resources>
